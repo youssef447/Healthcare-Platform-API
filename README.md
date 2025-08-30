@@ -12,17 +12,6 @@ The platform consists of 5 microservices:
 4. **Patient Management Service** - Core patient data management with REST APIs
 5. **Medical Dashboard Service** - Web interface for patient records and medical reporting
 
-## Technology Stack
-
-- **Java 17**
-- **Spring Boot 3.4.3**
-- **Spring Cloud**
-- **Spring Data JPA & Hibernate**
-- **PostgreSQL**
-- **Apache Kafka**
-- **Keycloak** (Authentication & Authorization)
-- **Docker & Docker Compose**
-- **Maven**
 
 ## Features
 
@@ -54,8 +43,3 @@ The platform uses Keycloak for authentication and authorization with the followi
 - `NURSE` - Limited patient data access
 - `PATIENT` - Own data access only
 
-## API Documentation
-
-Swagger UI is available for each service:
-- Data Ingestion: http://localhost:8081/swagger-ui.html
-- Patient Management: http://localhost:8082/swagger-ui.html
