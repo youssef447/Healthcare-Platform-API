@@ -4,31 +4,31 @@ import com.healthcare.dashboard.client.PatientServiceClient;
 import com.healthcare.dashboard.client.TreatmentServiceClient;
 import com.healthcare.dashboard.dto.ReportDto;
 import com.healthcare.dashboard.model.Report;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class ReportService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ReportService.class);
 
-    @Autowired
-    private PatientServiceClient patientServiceClient;
+    
+    private final PatientServiceClient patientServiceClient;
 
-    @Autowired
-    private TreatmentServiceClient treatmentServiceClient;
+    
+    private final TreatmentServiceClient treatmentServiceClient;
 
     // In-memory storage for reports (in production, use a database)
     private final Map<String, Report> reports = new ConcurrentHashMap<>();
 
     public List<ReportDto> getAllReports() {
-        logger.info("Retrieving all reports");
+        log.info("Retrieving all reports");
         return reports.values().stream()
                 .map(this::convertToDto)
                 .sorted((r1, r2) -> r2.getGeneratedAt().compareTo(r1.getGeneratedAt()))
@@ -36,13 +36,13 @@ public class ReportService {
     }
 
     public Optional<ReportDto> getReportById(String id) {
-        logger.info("Retrieving report by ID: {}", id);
+        log.info("Retrieving report by ID: {}", id);
         Report report = reports.get(id);
         return report != null ? Optional.of(convertToDto(report)) : Optional.empty();
     }
 
     public ReportDto generateReport(ReportDto reportDto) {
-        logger.info("Generating report: {}", reportDto.getTitle());
+        log.info("Generating report: {}", reportDto.getTitle());
         
         String reportId = UUID.randomUUID().toString();
         Report report = new Report();
@@ -64,9 +64,9 @@ public class ReportService {
             report.setData(reportData);
             report.setStatus(Report.ReportStatus.COMPLETED);
             
-            logger.info("Report generated successfully: {}", reportId);
+            log.info("Report generated successfully: {}", reportId);
         } catch (Exception e) {
-            logger.error("Error generating report: {}", reportId, e);
+            log.error("Error generating report: {}", reportId, e);
             report.setStatus(Report.ReportStatus.FAILED);
         }
         
@@ -74,7 +74,7 @@ public class ReportService {
     }
 
     public void deleteReport(String id) {
-        logger.info("Deleting report: {}", id);
+        log.info("Deleting report: {}", id);
         reports.remove(id);
     }
 
@@ -108,7 +108,7 @@ public class ReportService {
     }
 
     private Map<String, Object> generatePatientSummaryReport(Map<String, Object> parameters) {
-        logger.info("Generating patient summary report");
+        log.info("Generating patient summary report");
         Map<String, Object> data = new HashMap<>();
         
         try {
@@ -132,7 +132,7 @@ public class ReportService {
             data.put("bloodTypeDistribution", generateBloodTypeDistribution(patients));
             
         } catch (Exception e) {
-            logger.error("Error generating patient summary report", e);
+            log.error("Error generating patient summary report", e);
             data.put("error", "Unable to retrieve patient data");
         }
         
@@ -140,7 +140,7 @@ public class ReportService {
     }
 
     private Map<String, Object> generateTreatmentAnalysisReport(Map<String, Object> parameters) {
-        logger.info("Generating treatment analysis report");
+        log.info("Generating treatment analysis report");
         Map<String, Object> data = new HashMap<>();
         
         try {
@@ -161,7 +161,7 @@ public class ReportService {
             data.put("outcomeAnalysis", generateOutcomeAnalysis(treatments));
             
         } catch (Exception e) {
-            logger.error("Error generating treatment analysis report", e);
+            log.error("Error generating treatment analysis report", e);
             data.put("error", "Unable to retrieve treatment data");
         }
         
@@ -169,7 +169,7 @@ public class ReportService {
     }
 
     private Map<String, Object> generateMedicalRecordsReport(Map<String, Object> parameters) {
-        logger.info("Generating medical records report");
+        log.info("Generating medical records report");
         Map<String, Object> data = new HashMap<>();
         
         // Mock data for medical records report
@@ -186,7 +186,7 @@ public class ReportService {
     }
 
     private Map<String, Object> generateAppointmentReport(Map<String, Object> parameters) {
-        logger.info("Generating appointment report");
+        log.info("Generating appointment report");
         Map<String, Object> data = new HashMap<>();
         
         // Mock data for appointment report
@@ -205,7 +205,7 @@ public class ReportService {
     }
 
     private Map<String, Object> generateFinancialReport(Map<String, Object> parameters) {
-        logger.info("Generating financial report");
+        log.info("Generating financial report");
         Map<String, Object> data = new HashMap<>();
         
         // Mock data for financial report
@@ -222,7 +222,7 @@ public class ReportService {
     }
 
     private Map<String, Object> generateCustomReport(Map<String, Object> parameters) {
-        logger.info("Generating custom report");
+        log.info("Generating custom report");
         Map<String, Object> data = new HashMap<>();
         
         // Custom report based on parameters

@@ -9,9 +9,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -27,13 +27,14 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/patients")
+@RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Patient Management", description = "APIs for managing patient information")
 public class PatientController {
 
-    private static final Logger logger = LoggerFactory.getLogger(PatientController.class);
 
-    @Autowired
-    private PatientService patientService;
+    
+    private final PatientService patientService;
 
     @GetMapping("/health")
     @Operation(summary = "Health check endpoint")
@@ -45,20 +46,20 @@ public class PatientController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
     @Operation(summary = "Get all patients", description = "Retrieve all patients with optional pagination")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Patients retrieved successfully"),
         @ApiResponse(responseCode = "403", description = "Access denied")
     })
     public ResponseEntity<Page<PatientDto>> getAllPatients(Pageable pageable) {
-        logger.info("Received request to get all patients with pagination");
+        log.info("Received request to get all patients with pagination");
         Page<PatientDto> patients = patientService.getAllPatients(pageable);
         return ResponseEntity.ok(patients);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE') or (hasRole('PATIENT') and @patientService.isPatientOwner(#id, authentication.name))")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE') or (hasRole('PATIENT') and @patientService.isPatientOwner(#id, authentication.name))")
     @Operation(summary = "Get patient by ID", description = "Retrieve a specific patient by their ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Patient found"),
@@ -67,7 +68,7 @@ public class PatientController {
     })
     public ResponseEntity<PatientDto> getPatientById(
             @Parameter(description = "Patient ID") @PathVariable Long id) {
-        logger.info("Received request to get patient by ID: {}", id);
+        log.info("Received request to get patient by ID: {}", id);
         
         Optional<PatientDto> patient = patientService.getPatientById(id);
         if (patient.isPresent()) {
@@ -78,11 +79,11 @@ public class PatientController {
     }
 
     @GetMapping("/email/{email}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
     @Operation(summary = "Get patient by email", description = "Retrieve a patient by their email address")
     public ResponseEntity<PatientDto> getPatientByEmail(
             @Parameter(description = "Patient email") @PathVariable String email) {
-        logger.info("Received request to get patient by email: {}", email);
+        log.info("Received request to get patient by email: {}", email);
         
         Optional<PatientDto> patient = patientService.getPatientByEmail(email);
         if (patient.isPresent()) {
@@ -93,47 +94,47 @@ public class PatientController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
     @Operation(summary = "Search patients by name", description = "Search for patients by first or last name")
     public ResponseEntity<List<PatientDto>> searchPatientsByName(
             @Parameter(description = "Search term") @RequestParam String name) {
-        logger.info("Received request to search patients by name: {}", name);
+        log.info("Received request to search patients by name: {}", name);
         List<PatientDto> patients = patientService.searchPatientsByName(name);
         return ResponseEntity.ok(patients);
     }
 
     @GetMapping("/gender/{gender}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
     @Operation(summary = "Get patients by gender", description = "Retrieve patients filtered by gender")
     public ResponseEntity<List<PatientDto>> getPatientsByGender(
             @Parameter(description = "Patient gender") @PathVariable Patient.Gender gender) {
-        logger.info("Received request to get patients by gender: {}", gender);
+        log.info("Received request to get patients by gender: {}", gender);
         List<PatientDto> patients = patientService.getPatientsByGender(gender);
         return ResponseEntity.ok(patients);
     }
 
     @GetMapping("/status/{status}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
     @Operation(summary = "Get patients by status", description = "Retrieve patients filtered by status")
     public ResponseEntity<List<PatientDto>> getPatientsByStatus(
             @Parameter(description = "Patient status") @PathVariable Patient.PatientStatus status) {
-        logger.info("Received request to get patients by status: {}", status);
+        log.info("Received request to get patients by status: {}", status);
         List<PatientDto> patients = patientService.getPatientsByStatus(status);
         return ResponseEntity.ok(patients);
     }
 
     @GetMapping("/blood-type/{bloodType}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
     @Operation(summary = "Get patients by blood type", description = "Retrieve patients filtered by blood type")
     public ResponseEntity<List<PatientDto>> getPatientsByBloodType(
             @Parameter(description = "Blood type") @PathVariable String bloodType) {
-        logger.info("Received request to get patients by blood type: {}", bloodType);
+        log.info("Received request to get patients by blood type: {}", bloodType);
         List<PatientDto> patients = patientService.getPatientsByBloodType(bloodType);
         return ResponseEntity.ok(patients);
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
     @Operation(summary = "Create a new patient", description = "Create a new patient record")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Patient created successfully"),
@@ -143,7 +144,7 @@ public class PatientController {
     })
     public ResponseEntity<Map<String, Object>> createPatient(
             @Valid @RequestBody PatientDto patientDto) {
-        logger.info("Received request to create patient: {}", patientDto.getFullName());
+        log.info("Received request to create patient: {}", patientDto.getFullName());
         
         try {
             PatientDto createdPatient = patientService.createPatient(patientDto);
@@ -156,18 +157,18 @@ public class PatientController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
             
         } catch (IllegalArgumentException e) {
-            logger.error("Patient already exists: {}", patientDto.getEmail(), e);
+            log.error("Patient already exists: {}", patientDto.getEmail(), e);
             return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(createErrorResponse("Patient already exists: " + e.getMessage()));
         } catch (Exception e) {
-            logger.error("Error creating patient: {}", patientDto.getFullName(), e);
+            log.error("Error creating patient: {}", patientDto.getFullName(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(createErrorResponse("Error creating patient: " + e.getMessage()));
         }
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or (hasRole('PATIENT') and @patientService.isPatientOwner(#id, authentication.name))")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or (hasRole('PATIENT') and @patientService.isPatientOwner(#id, authentication.name))")
     @Operation(summary = "Update a patient", description = "Update an existing patient record")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Patient updated successfully"),
@@ -178,7 +179,7 @@ public class PatientController {
     public ResponseEntity<Map<String, Object>> updatePatient(
             @Parameter(description = "Patient ID") @PathVariable Long id,
             @Valid @RequestBody PatientDto patientDto) {
-        logger.info("Received request to update patient with ID: {}", id);
+        log.info("Received request to update patient with ID: {}", id);
         
         try {
             PatientDto updatedPatient = patientService.updatePatient(id, patientDto);
@@ -191,11 +192,11 @@ public class PatientController {
             return ResponseEntity.ok(response);
             
         } catch (IllegalArgumentException e) {
-            logger.error("Patient not found: {}", id, e);
+            log.error("Patient not found: {}", id, e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(createErrorResponse("Patient not found: " + e.getMessage()));
         } catch (Exception e) {
-            logger.error("Error updating patient: {}", id, e);
+            log.error("Error updating patient: {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(createErrorResponse("Error updating patient: " + e.getMessage()));
         }
@@ -211,7 +212,7 @@ public class PatientController {
     })
     public ResponseEntity<Map<String, Object>> deletePatient(
             @Parameter(description = "Patient ID") @PathVariable Long id) {
-        logger.info("Received request to delete patient with ID: {}", id);
+        log.info("Received request to delete patient with ID: {}", id);
         
         try {
             patientService.deletePatient(id);
@@ -224,21 +225,21 @@ public class PatientController {
             return ResponseEntity.ok(response);
             
         } catch (IllegalArgumentException e) {
-            logger.error("Patient not found: {}", id, e);
+            log.error("Patient not found: {}", id, e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(createErrorResponse("Patient not found: " + e.getMessage()));
         } catch (Exception e) {
-            logger.error("Error deleting patient: {}", id, e);
+            log.error("Error deleting patient: {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(createErrorResponse("Error deleting patient: " + e.getMessage()));
         }
     }
 
     @GetMapping("/statistics")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
     @Operation(summary = "Get patient statistics", description = "Retrieve various patient statistics")
     public ResponseEntity<Map<String, Object>> getPatientStatistics() {
-        logger.info("Received request for patient statistics");
+        log.info("Received request for patient statistics");
         
         Map<String, Object> statistics = new HashMap<>();
         statistics.put("totalPatients", patientService.getPatientCount());
@@ -252,19 +253,19 @@ public class PatientController {
     }
 
     @GetMapping("/allergies")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
     @Operation(summary = "Get patients with allergies", description = "Retrieve patients who have recorded allergies")
     public ResponseEntity<List<PatientDto>> getPatientsWithAllergies() {
-        logger.info("Received request to get patients with allergies");
+        log.info("Received request to get patients with allergies");
         List<PatientDto> patients = patientService.getPatientsWithAllergies();
         return ResponseEntity.ok(patients);
     }
 
     @GetMapping("/missing-emergency-contact")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
     @Operation(summary = "Get patients without emergency contact", description = "Retrieve patients missing emergency contact information")
     public ResponseEntity<List<PatientDto>> getPatientsWithoutEmergencyContact() {
-        logger.info("Received request to get patients without emergency contact");
+        log.info("Received request to get patients without emergency contact");
         List<PatientDto> patients = patientService.getPatientsWithoutEmergencyContact();
         return ResponseEntity.ok(patients);
     }

@@ -4,27 +4,27 @@ import com.healthcare.dashboard.client.PatientServiceClient;
 import com.healthcare.dashboard.client.TreatmentServiceClient;
 import com.healthcare.dashboard.dto.DashboardDto;
 import com.healthcare.dashboard.model.DashboardData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class DashboardService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DashboardService.class);
 
-    @Autowired
-    private PatientServiceClient patientServiceClient;
+    private final PatientServiceClient patientServiceClient;
 
-    @Autowired
-    private TreatmentServiceClient treatmentServiceClient;
+
+    private final TreatmentServiceClient treatmentServiceClient;
 
     public DashboardDto getDashboardData() {
-        logger.info("Retrieving dashboard data");
+        log.info("Retrieving dashboard data");
         
         DashboardDto dashboardDto = new DashboardDto();
         
@@ -41,7 +41,7 @@ public class DashboardService {
             dashboardDto.setPatientStatistics(patientStatistics);
             
         } catch (Exception e) {
-            logger.error("Error retrieving patient statistics", e);
+            log.error("Error retrieving patient statistics", e);
             dashboardDto.setPatientStatistics(new DashboardData.PatientStatistics());
         }
 
@@ -56,7 +56,7 @@ public class DashboardService {
             dashboardDto.setTreatmentStatistics(treatmentStatistics);
             
         } catch (Exception e) {
-            logger.error("Error retrieving treatment statistics", e);
+            log.error("Error retrieving treatment statistics", e);
             dashboardDto.setTreatmentStatistics(new DashboardData.TreatmentStatistics());
         }
 
@@ -68,12 +68,12 @@ public class DashboardService {
         
         dashboardDto.setLastUpdated(LocalDateTime.now());
         
-        logger.info("Dashboard data retrieved successfully");
+        log.info("Dashboard data retrieved successfully");
         return dashboardDto;
     }
 
     public Map<String, Object> getPatientAnalytics() {
-        logger.info("Retrieving patient analytics");
+        log.info("Retrieving patient analytics");
         
         Map<String, Object> analytics = new HashMap<>();
         
@@ -87,7 +87,7 @@ public class DashboardService {
             analytics.put("patientGrowth", generatePatientGrowthData());
             
         } catch (Exception e) {
-            logger.error("Error retrieving patient analytics", e);
+            log.error("Error retrieving patient analytics", e);
             analytics.put("error", "Unable to retrieve patient analytics");
         }
         
@@ -95,7 +95,7 @@ public class DashboardService {
     }
 
     public Map<String, Object> getTreatmentAnalytics() {
-        logger.info("Retrieving treatment analytics");
+        log.info("Retrieving treatment analytics");
         
         Map<String, Object> analytics = new HashMap<>();
         
@@ -109,7 +109,7 @@ public class DashboardService {
             analytics.put("treatmentOutcomes", generateTreatmentOutcomesData());
             
         } catch (Exception e) {
-            logger.error("Error retrieving treatment analytics", e);
+            log.error("Error retrieving treatment analytics", e);
             analytics.put("error", "Unable to retrieve treatment analytics");
         }
         
@@ -123,7 +123,7 @@ public class DashboardService {
         Map<String, Object> genderChart = new HashMap<>();
         genderChart.put("type", "pie");
         genderChart.put("title", "Patient Gender Distribution");
-        genderChart.put("data", Arrays.asList(
+        genderChart.put("data", List.of(
             Map.of("label", "Male", "value", 45),
             Map.of("label", "Female", "value", 55)
         ));
@@ -140,7 +140,7 @@ public class DashboardService {
         Map<String, Object> treatmentChart = new HashMap<>();
         treatmentChart.put("type", "bar");
         treatmentChart.put("title", "Treatment Status Overview");
-        treatmentChart.put("data", Arrays.asList(
+        treatmentChart.put("data", List.of(
             Map.of("label", "Active", "value", 120),
             Map.of("label", "Completed", "value", 85),
             Map.of("label", "Cancelled", "value", 15),

@@ -2,9 +2,8 @@ package com.healthcare.ingestion.service;
 
 import com.healthcare.ingestion.model.IngestionEvent;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
@@ -14,9 +13,8 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class KafkaProducerService {
-
-    private static final Logger logger = LoggerFactory.getLogger(KafkaProducerService.class);
 
     private static final String PATIENT_TOPIC = "patient-events";
     private static final String MEDICAL_RECORD_TOPIC = "medical-record-events";
@@ -47,15 +45,15 @@ public class KafkaProducerService {
             
             future.whenComplete((result, exception) -> {
                 if (exception == null) {
-                    logger.info("Event published successfully to topic {}: {}", 
+                    log.info("Event published successfully to topic {}: {}",
                                topic, event.getEventId());
                 } else {
-                    logger.error("Failed to publish event to topic {}: {}", 
+                    log.error("Failed to publish event to topic {}: {}",
                                 topic, event.getEventId(), exception);
                 }
             });
         } catch (Exception e) {
-            logger.error("Error publishing event to topic {}: {}", topic, event.getEventId(), e);
+            log.error("Error publishing event to topic {}: {}", topic, event.getEventId(), e);
         }
     }
 
