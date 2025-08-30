@@ -16,7 +16,7 @@ The platform consists of 5 microservices:
 
 - **Java 17**
 - **Spring Boot 3.4.3**
-- **Spring Cloud 2023.0.0**
+- **Spring Cloud**
 - **Spring Data JPA & Hibernate**
 - **PostgreSQL**
 - **Apache Kafka**
@@ -33,23 +33,6 @@ The platform consists of 5 microservices:
 - Secure REST APIs with JWT authentication
 - Microservices architecture with service discovery
 
-## Quick Start
-
-1. **Prerequisites**
-   - Docker and Docker Compose
-   - Java 17+
-   - Maven 3.6+
-
-2. **Run the Platform**
-   ```bash
-   docker-compose up -d
-   ```
-
-3. **Access Services**
-   - API Gateway: http://localhost:8080
-   - Medical Dashboard: http://localhost:8085
-   - Eureka Server: http://localhost:8761
-   - Keycloak Admin: http://localhost:8180/admin
 
 ## Service Ports
 
@@ -62,14 +45,6 @@ The platform consists of 5 microservices:
 - Kafka: 9092
 - Keycloak: 8180
 
-## Development
-
-Each service can be run independently for development:
-
-```bash
-cd [service-directory]
-mvn spring-boot:run
-```
 
 ## Security
 
@@ -84,15 +59,3 @@ The platform uses Keycloak for authentication and authorization with the followi
 Swagger UI is available for each service:
 - Data Ingestion: http://localhost:8081/swagger-ui.html
 - Patient Management: http://localhost:8082/swagger-ui.html
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-This project is licensed under the MIT License.
