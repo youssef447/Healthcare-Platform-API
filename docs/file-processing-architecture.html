@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Platform - File Processing Architecture</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .mermaid {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .code {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 15px 0;
+        }
+        .highlight {
+            background-color: #fffde7;
+            padding: 2px 5px;
+            border-radius: 3px;
+            border-left: 3px solid #ffd600;
+        }
+        .note {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Healthcare Platform - File Processing Architecture</h1>
+        <p>This document illustrates the Strategy pattern implementation for file processing in the Healthcare Platform.</p>
+        
+        <h2>Architecture Overview</h2>
+        <div class="mermaid">
+            classDiagram
+                class FileProcessorService {
+                    -FileProcessorFactory factory
+                    +processFile(MultipartFile file) List~T~
+                }
+                
+                class FileProcessorFactory {
+                    -List~FileProcessor~ processors
+                    +getProcessor(MultipartFile, Class~T~) FileProcessor~T~
+                }
+                
+                class FileProcessor~T~ {
+                    <<interface>>
+                    +process(MultipartFile file) List~T~
+                    +supports(String contentType, String fileName) boolean
+                }
+                
+                class BaseFileProcessor~T~ {
+                    #processFile(MultipartFile file) List~T~
+                    #parseContent(String content) List~T~
+                    #validate(T item) void
+                    #logError(String message, Exception e)
+                }
+                
+                class CsvPatientProcessor {
+                    +supports(String, String) boolean
+                    #parseContent(String) List~PatientDto~
+                }
+                
+                class JsonPatientProcessor {
+                    +supports(String, String) boolean
+                    #parseContent(String) List~PatientDto~
+                }
+                
+                FileProcessorService --> FileProcessorFactory : uses
+                FileProcessorFactory --> FileProcessor : creates
+                FileProcessor <|.. BaseFileProcessor
+                BaseFileProcessor <|-- CsvPatientProcessor
+                BaseFileProcessor <|-- JsonPatientProcessor
+                
+                note for FileProcessorFactory "Handles processor selection\nbased on file type and content"
+                note for BaseFileProcessor "Implements common\nprocessing logic"
+        </div>
+        
+        <h2>Key Components</h2>
+        
+        <h3>1. FileProcessorService</h3>
+        <p>The main service that handles file processing requests. It delegates the actual processing to the appropriate processor.</p>
+        <div class="code">
+            @Service
+            @RequiredArgsConstructor
+            public class FileProcessorService {
+                private final FileProcessorFactory processorFactory;
+                
+                public &lt;T> List&lt;T> processFile(MultipartFile file, Class&lt;T> type) {
+                    FileProcessor&lt;T> processor = processorFactory.getProcessor(file, type);
+                    return processor.process(file);
+                }
+            }
+        </div>
+        
+        <h3>2. FileProcessorFactory</h3>
+        <p>Responsible for selecting the appropriate processor based on file type and content.</p>
+        <div class="code">
+            @Component
+            public class FileProcessorFactory {
+                private final List&lt;FileProcessor&lt;?>> processors;
+                
+                public &lt;T> FileProcessor&lt;T> getProcessor(MultipartFile file, Class&lt;T> type) {
+                    return processors.stream()
+                        .filter(p -> type.isAssignableFrom(getGenericType(p)))
+                        .filter(p -> p.supports(file.getContentType(), file.getOriginalFilename()))
+                        .findFirst()
+                        .map(p -> (FileProcessor&lt;T>) p)
+                        .orElseThrow(() -> new UnsupportedOperationException("No suitable processor found"));
+                }
+            }
+        </div>
+        
+        <h3>3. BaseFileProcessor</h3>
+        <p>Abstract base class that implements common file processing logic.</p>
+        <div class="code">
+            public abstract class BaseFileProcessor&lt;T> implements FileProcessor&lt;T> {
+                @Override
+                public List&lt;T> process(MultipartFile file) {
+                    try {
+                        String content = new String(file.getBytes());
+                        List&lt;T> items = parseContent(content);
+                        items.forEach(this::validate);
+                        return items;
+                    } catch (Exception e) {
+                        logError("Error processing file", e);
+                        throw new ProcessingException("Failed to process file", e);
+                    }
+                }
+                
+                protected abstract List&lt;T> parseContent(String content);
+                protected abstract void validate(T item);
+            }
+        </div>
+        
+        <h2>Example Implementation: CSV Patient Processor</h2>
+        <div class="code">
+            @Component
+            public class CsvPatientProcessor extends BaseFileProcessor&lt;PatientDto> {
+                @Override
+                public boolean supports(String contentType, String fileName) {
+                    return "text/csv".equals(contentType) && fileName.endsWith(".csv");
+                }
+                
+                @Override
+                protected List&lt;PatientDto> parseContent(String content) {
+                    // Parse CSV content and convert to PatientDto list
+                    // ...
+                }
+                
+                @Override
+                protected void validate(PatientDto patient) {
+                    // Validate patient data
+                    // ...
+                }
+            }
+        </div>
+        
+        <div class="note">
+            <h3>Benefits of This Architecture</h3>
+            <ul>
+                <li><strong>Extensibility</strong>: Easy to add new file formats by creating new processor classes</li>
+                <li><strong>Single Responsibility</strong>: Each class has a single responsibility</li>
+                <li><strong>Testability</strong>: Processors can be tested in isolation</li>
+                <li><strong>Maintainability</strong>: Changes to one processor don't affect others</li>
+            </ul>
+        </div>
+        
+        <h2>Sequence Diagram</h2>
+        <div class="mermaid">
+            sequenceDiagram
+                participant Client
+                participant FileProcessorService
+                participant FileProcessorFactory
+                participant CsvPatientProcessor
+                
+                Client->>FileProcessorService: processFile(patient.csv, PatientDto.class)
+                FileProcessorService->>FileProcessorFactory: getProcessor(file, PatientDto)
+                FileProcessorFactory-->>FileProcessorService: CsvPatientProcessor
+                FileProcessorService->>CsvPatientProcessor: process(file)
+                CsvPatientProcessor-->>FileProcessorService: List~PatientDto~
+                FileProcessorService-->>Client: List~PatientDto~
+        </div>
+    </div>
+    
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: { useMaxWidth: true, htmlLabels: true },
+            sequence: { showSequenceNumbers: true },
+            themeCSS: '.node rect { fill: #e3f2fd; stroke: #2196f3; }',
+        });
+    </script>
+</body>
+</html>

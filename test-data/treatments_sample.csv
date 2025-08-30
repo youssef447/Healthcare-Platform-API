@@ -1,0 +1,16 @@
+patientId,type,description,doctorName,startDate,endDate,medications,cost,notes,status
+1,MEDICATION,Antibiotic treatment for bacterial infection,Dr. Smith,1/15/2024,1/29/2024,Amoxicillin 500mg TID,150,Complete full course as prescribed,ACTIVE
+2,THERAPY,Physical therapy for knee rehabilitation,Dr. Johnson,1/10/2024,3/10/2024,Ibuprofen 400mg PRN,800,3 sessions per week recommended,ACTIVE
+3,SURGERY,Appendectomy - laparoscopic,Dr. Brown,1/5/2024,1/5/2024,Post-op pain management,5500,Successful procedure - routine recovery,COMPLETED
+4,CONSULTATION,Anxiety counseling sessions,Dr. Wilson,1/8/2024,4/8/2024,Sertraline 50mg daily,180,Weekly sessions scheduled,ACTIVE
+5,MEDICATION,Hypertension management,Dr. Davis,1/1/2024,12/31/2024,Lisinopril 10mg daily,200,Annual treatment plan,ACTIVE
+6,THERAPY,Migraine management program,Dr. Miller,1/12/2024,4/12/2024,Sumatriptan 100mg PRN,450,Lifestyle modification included,ACTIVE
+7,MEDICATION,Arthritis pain management,Dr. Garcia,1/14/2024,7/14/2024,Methotrexate 15mg weekly,600,Monitor liver function monthly,ACTIVE
+8,THERAPY,Cognitive behavioral therapy,Dr. Martinez,1/16/2024,6/16/2024,Lorazepam 1mg PRN,300,Bi-weekly sessions,ACTIVE
+9,MEDICATION,Depression treatment protocol,Dr. Anderson,1/18/2024,7/18/2024,Fluoxetine 20mg daily,250,Monitor for side effects,ACTIVE
+10,MEDICATION,Thyroid hormone replacement,Dr. Taylor,1/20/2024,12/31/2024,Levothyroxine 75mcg daily,120,Check TSH levels quarterly,ACTIVE
+11,CONSULTATION,Kidney stone prevention counseling,Dr. Thomas,1/22/2024,2/22/2024,Potassium citrate 10mEq BID,80,Dietary consultation included,COMPLETED
+12,MEDICATION,Fibromyalgia pain management,Dr. Jackson,1/24/2024,6/24/2024,Pregabalin 150mg BID,400,Gradual dose titration,ACTIVE
+13,THERAPY,Sleep apnea CPAP therapy,Dr. White,1/26/2024,12/31/2024,None,1200,Equipment rental included,ACTIVE
+14,MEDICATION,Osteoporosis prevention,Dr. Harris,1/28/2024,12/31/2024,Alendronate 70mg weekly,300,Take on empty stomach,ACTIVE
+15,MEDICATION,Gout management and prevention,Dr. Smith,1/30/2024,12/31/2024,Allopurinol 300mg daily,180,Monitor uric acid levels,ACTIVE

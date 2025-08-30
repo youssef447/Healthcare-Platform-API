@@ -1,0 +1,769 @@
+{
+	"info": {
+		"_postman_id": "healthcare-platform-api",
+		"name": "Healthcare Management Platform API",
+		"description": "Complete API collection for Healthcare Management Platform microservices",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{jwt_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "keycloak_url",
+			"value": "http://localhost:8180",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Get Keycloak Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('jwt_token', response.access_token);",
+									"    console.log('JWT Token set successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "healthcare-client",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "admin123",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{keycloak_url}}/realms/healthcare/protocol/openid-connect/token",
+							"host": [
+								"{{keycloak_url}}"
+							],
+							"path": [
+								"realms",
+								"healthcare",
+								"protocol",
+								"openid-connect",
+								"token"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Data Ingestion Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/data-ingestion/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"data-ingestion",
+								"health"
+							]
+						}
+					}
+				},
+				{
+					"name": "Upload CSV File",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "patients_sample.csv"
+								},
+								{
+									"key": "type",
+									"value": "patients",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/data-ingestion/api/ingestion/upload",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"data-ingestion",
+								"api",
+								"ingestion",
+								"upload"
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Patient",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"dateOfBirth\": \"1985-03-15\",\n    \"gender\": \"MALE\",\n    \"phoneNumber\": \"+1-555-0123\",\n    \"email\": \"john.doe@email.com\",\n    \"address\": \"123 Main St, Anytown, USA\",\n    \"emergencyContactName\": \"Jane Doe\",\n    \"emergencyContactPhone\": \"+1-555-0124\",\n    \"bloodType\": \"A+\",\n    \"allergies\": \"Penicillin\",\n    \"medicalHistory\": \"Hypertension\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/data-ingestion/api/ingestion/patients",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"data-ingestion",
+								"api",
+								"ingestion",
+								"patients"
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Medical Record",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"patientId\": 1,\n    \"recordType\": \"CONSULTATION\",\n    \"diagnosis\": \"Common Cold\",\n    \"treatment\": \"Rest and fluids\",\n    \"medications\": \"Acetaminophen 500mg\",\n    \"notes\": \"Patient reports mild symptoms\",\n    \"doctorName\": \"Dr. Smith\",\n    \"recordDate\": \"2024-01-27\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/data-ingestion/api/ingestion/medical-records",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"data-ingestion",
+								"api",
+								"ingestion",
+								"medical-records"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Patient Management Service",
+			"item": [
+				{
+					"name": "Patients",
+					"item": [
+						{
+							"name": "Get All Patients",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/patients",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"patients"
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Patient by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/patients/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"patients",
+										"1"
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Patient",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"firstName\": \"Alice\",\n    \"lastName\": \"Johnson\",\n    \"dateOfBirth\": \"1990-07-22\",\n    \"gender\": \"FEMALE\",\n    \"phoneNumber\": \"+1-555-0125\",\n    \"email\": \"alice.johnson@email.com\",\n    \"address\": \"456 Oak Ave, Springfield, USA\",\n    \"emergencyContactName\": \"Bob Johnson\",\n    \"emergencyContactPhone\": \"+1-555-0126\",\n    \"bloodType\": \"O-\",\n    \"allergies\": \"Shellfish\",\n    \"medicalHistory\": \"Diabetes Type 2\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/patients",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"patients"
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Patient",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"firstName\": \"Alice\",\n    \"lastName\": \"Johnson-Smith\",\n    \"dateOfBirth\": \"1990-07-22\",\n    \"gender\": \"FEMALE\",\n    \"phoneNumber\": \"+1-555-0127\",\n    \"email\": \"alice.smith@email.com\",\n    \"address\": \"789 Pine St, Springfield, USA\",\n    \"emergencyContactName\": \"Bob Johnson\",\n    \"emergencyContactPhone\": \"+1-555-0126\",\n    \"bloodType\": \"O-\",\n    \"allergies\": \"Shellfish, Nuts\",\n    \"medicalHistory\": \"Diabetes Type 2, Hypertension\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/patients/2",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"patients",
+										"2"
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Patient",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/patients/3",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"patients",
+										"3"
+									]
+								}
+							}
+						},
+						{
+							"name": "Search Patients",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/patients/search?firstName=John&lastName=Doe",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"patients",
+										"search"
+									],
+									"query": [
+										{
+											"key": "firstName",
+											"value": "John"
+										},
+										{
+											"key": "lastName",
+											"value": "Doe"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Patient Statistics",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/patients/statistics",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"patients",
+										"statistics"
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Treatments",
+					"item": [
+						{
+							"name": "Get All Treatments",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/treatments",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"treatments"
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Treatment by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/treatments/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"treatments",
+										"1"
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Treatment",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"patientId\": 1,\n    \"type\": \"MEDICATION\",\n    \"description\": \"Antibiotic treatment for bacterial infection\",\n    \"doctorName\": \"Dr. Smith\",\n    \"startDate\": \"2024-01-27\",\n    \"endDate\": \"2024-02-10\",\n    \"medications\": \"Amoxicillin 500mg, 3 times daily\",\n    \"cost\": 150.00,\n    \"notes\": \"Patient should complete full course\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/treatments",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"treatments"
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Treatment",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"patientId\": 1,\n    \"type\": \"MEDICATION\",\n    \"description\": \"Extended antibiotic treatment for bacterial infection\",\n    \"doctorName\": \"Dr. Smith\",\n    \"startDate\": \"2024-01-27\",\n    \"endDate\": \"2024-02-15\",\n    \"medications\": \"Amoxicillin 500mg, 3 times daily\",\n    \"cost\": 200.00,\n    \"notes\": \"Treatment extended due to slow recovery\",\n    \"status\": \"ACTIVE\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/treatments/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"treatments",
+										"1"
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Treatments by Patient",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/treatments/patient/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"treatments",
+										"patient",
+										"1"
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Treatment Statistics",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/patient-management/api/treatments/statistics",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"patient-management",
+										"api",
+										"treatments",
+										"statistics"
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Medical Dashboard Service",
+			"item": [
+				{
+					"name": "Dashboard",
+					"item": [
+						{
+							"name": "Health Check",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/medical-dashboard/api/dashboard/health",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"medical-dashboard",
+										"api",
+										"dashboard",
+										"health"
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Dashboard Data",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/medical-dashboard/api/dashboard/data",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"medical-dashboard",
+										"api",
+										"dashboard",
+										"data"
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Patient Analytics",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/medical-dashboard/api/dashboard/analytics/patients",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"medical-dashboard",
+										"api",
+										"dashboard",
+										"analytics",
+										"patients"
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Treatment Analytics",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/medical-dashboard/api/dashboard/analytics/treatments",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"medical-dashboard",
+										"api",
+										"dashboard",
+										"analytics",
+										"treatments"
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Reports",
+					"item": [
+						{
+							"name": "Get All Reports",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/medical-dashboard/api/reports",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"medical-dashboard",
+										"api",
+										"reports"
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Report by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/medical-dashboard/api/reports/report-123",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"medical-dashboard",
+										"api",
+										"reports",
+										"report-123"
+									]
+								}
+							}
+						},
+						{
+							"name": "Generate Patient Summary Report",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Monthly Patient Summary - January 2024\",\n    \"type\": \"PATIENT_SUMMARY\",\n    \"description\": \"Comprehensive patient statistics and demographics for January 2024\",\n    \"generatedBy\": \"Dr. Admin\",\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-01-31T23:59:59\",\n    \"parameters\": {\n        \"includeInactive\": false,\n        \"groupByAge\": true,\n        \"includeAllergies\": true\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/medical-dashboard/api/reports",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"medical-dashboard",
+										"api",
+										"reports"
+									]
+								}
+							}
+						},
+						{
+							"name": "Generate Treatment Analysis Report",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Treatment Outcomes Analysis - Q1 2024\",\n    \"type\": \"TREATMENT_ANALYSIS\",\n    \"description\": \"Analysis of treatment effectiveness and costs for Q1 2024\",\n    \"generatedBy\": \"Dr. Smith\",\n    \"startDate\": \"2024-01-01T00:00:00\",\n    \"endDate\": \"2024-03-31T23:59:59\",\n    \"parameters\": {\n        \"includeCosts\": true,\n        \"groupByType\": true,\n        \"includeOutcomes\": true\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/medical-dashboard/api/reports",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"medical-dashboard",
+										"api",
+										"reports"
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Report",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/medical-dashboard/api/reports/report-123",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"medical-dashboard",
+										"api",
+										"reports",
+										"report-123"
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Service Discovery",
+			"item": [
+				{
+					"name": "Eureka Server Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8761/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8761",
+							"path": [
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Registered Services",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8761/eureka/apps",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8761",
+							"path": [
+								"eureka",
+								"apps"
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}

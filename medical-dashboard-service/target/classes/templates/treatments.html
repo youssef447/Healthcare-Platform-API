@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Treatments - Healthcare Dashboard</title>
+</head>
+<body>
+    <div th:fragment="content">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Treatment Management</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTreatmentModal">
+                <i class="fas fa-plus me-2"></i>Add New Treatment
+            </button>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card-info">
+                    <div class="card-body text-center text-white">
+                        <i class="fas fa-stethoscope fa-2x mb-2"></i>
+                        <h4 id="totalTreatments">0</h4>
+                        <p>Total Treatments</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card-success">
+                    <div class="card-body text-center text-white">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                        <h4 id="activeTreatments">0</h4>
+                        <p>Active Treatments</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card-warning">
+                    <div class="card-body text-center text-white">
+                        <i class="fas fa-clock fa-2x mb-2"></i>
+                        <h4 id="pendingTreatments">0</h4>
+                        <p>Pending Treatments</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body text-center text-white">
+                        <i class="fas fa-dollar-sign fa-2x mb-2"></i>
+                        <h4 id="averageCost">$0</h4>
+                        <p>Average Cost</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="searchTreatments" placeholder="Search treatments...">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="filterStatus">
+                            <option value="">All Status</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="CANCELLED">Cancelled</option>
+                            <option value="PAUSED">Paused</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="filterType">
+                            <option value="">All Types</option>
+                            <option value="MEDICATION">Medication</option>
+                            <option value="SURGERY">Surgery</option>
+                            <option value="THERAPY">Therapy</option>
+                            <option value="CONSULTATION">Consultation</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <span class="input-group-text">Patient ID</span>
+                            <input type="number" class="form-control" id="filterPatientId" placeholder="Filter by patient">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                            <i class="fas fa-times me-1"></i>Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Treatments Table -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Treatment List</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="treatmentsTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Patient</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Doctor</th>
+                                <th>Status</th>
+                                <th>Cost</th>
+                                <th>Start Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="treatmentsTableBody">
+                            <!-- Treatment data will be loaded here via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Loading indicator -->
+                <div id="loadingIndicator" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading treatments...</p>
+                </div>
+                
+                <!-- No data message -->
+                <div id="noDataMessage" class="text-center py-4" style="display: none;">
+                    <i class="fas fa-stethoscope fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No treatments found</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Treatment Modal -->
+        <div class="modal fade" id="addTreatmentModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Treatment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addTreatmentForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Patient ID *</label>
+                                    <input type="number" class="form-control" name="patientId" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Treatment Type *</label>
+                                    <select class="form-select" name="type" required>
+                                        <option value="">Select Type</option>
+                                        <option value="MEDICATION">Medication</option>
+                                        <option value="SURGERY">Surgery</option>
+                                        <option value="THERAPY">Therapy</option>
+                                        <option value="CONSULTATION">Consultation</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description *</label>
+                                <textarea class="form-control" name="description" rows="3" required></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Doctor Name *</label>
+                                    <input type="text" class="form-control" name="doctorName" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Cost</label>
+                                    <input type="number" class="form-control" name="cost" step="0.01">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Start Date *</label>
+                                    <input type="date" class="form-control" name="startDate" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">End Date</label>
+                                    <input type="date" class="form-control" name="endDate">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Medications</label>
+                                <textarea class="form-control" name="medications" rows="2" placeholder="List medications if applicable"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTreatment()">Save Treatment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let treatments = [];
+
+            // Load treatments on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                loadTreatments();
+            });
+
+            async function loadTreatments() {
+                try {
+                    // Mock data for treatments
+                    treatments = [
+                        {
+                            id: 1,
+                            patientId: 1,
+                            patientName: 'John Doe',
+                            type: 'MEDICATION',
+                            description: 'Antibiotic treatment for infection',
+                            doctorName: 'Dr. Smith',
+                            status: 'ACTIVE',
+                            cost: 150.00,
+                            startDate: '2024-01-15'
+                        },
+                        {
+                            id: 2,
+                            patientId: 2,
+                            patientName: 'Jane Smith',
+                            type: 'THERAPY',
+                            description: 'Physical therapy for knee injury',
+                            doctorName: 'Dr. Johnson',
+                            status: 'ACTIVE',
+                            cost: 800.00,
+                            startDate: '2024-01-10'
+                        },
+                        {
+                            id: 3,
+                            patientId: 3,
+                            patientName: 'Bob Johnson',
+                            type: 'SURGERY',
+                            description: 'Appendectomy',
+                            doctorName: 'Dr. Brown',
+                            status: 'COMPLETED',
+                            cost: 5500.00,
+                            startDate: '2024-01-05'
+                        }
+                    ];
+                    
+                    displayTreatments(treatments);
+                    updateStatistics();
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                } catch (error) {
+                    console.error('Error loading treatments:', error);
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    document.getElementById('noDataMessage').style.display = 'block';
+                }
+            }
+
+            function displayTreatments(treatmentsToShow) {
+                const tbody = document.getElementById('treatmentsTableBody');
+                
+                if (treatmentsToShow.length === 0) {
+                    document.getElementById('noDataMessage').style.display = 'block';
+                    tbody.innerHTML = '';
+                    return;
+                }
+                
+                document.getElementById('noDataMessage').style.display = 'none';
+                
+                tbody.innerHTML = treatmentsToShow.map(treatment => `
+                    <tr>
+                        <td>${treatment.id}</td>
+                        <td>${treatment.patientName}</td>
+                        <td>
+                            <span class="badge bg-info">${treatment.type}</span>
+                        </td>
+                        <td>${treatment.description}</td>
+                        <td>${treatment.doctorName}</td>
+                        <td>
+                            <span class="badge ${getStatusBadgeClass(treatment.status)}">
+                                ${treatment.status}
+                            </span>
+                        </td>
+                        <td>$${treatment.cost?.toFixed(2) || 'N/A'}</td>
+                        <td>${treatment.startDate}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="viewTreatment(${treatment.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-1" onclick="editTreatment(${treatment.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTreatment(${treatment.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            function getStatusBadgeClass(status) {
+                switch(status) {
+                    case 'ACTIVE': return 'bg-success';
+                    case 'COMPLETED': return 'bg-primary';
+                    case 'CANCELLED': return 'bg-danger';
+                    case 'PAUSED': return 'bg-warning';
+                    default: return 'bg-secondary';
+                }
+            }
+
+            function updateStatistics() {
+                const total = treatments.length;
+                const active = treatments.filter(t => t.status === 'ACTIVE').length;
+                const pending = treatments.filter(t => t.status === 'PENDING').length;
+                const avgCost = treatments.reduce((sum, t) => sum + (t.cost || 0), 0) / total;
+
+                document.getElementById('totalTreatments').textContent = total;
+                document.getElementById('activeTreatments').textContent = active;
+                document.getElementById('pendingTreatments').textContent = pending;
+                document.getElementById('averageCost').textContent = `$${avgCost.toFixed(2)}`;
+            }
+
+            function filterTreatments() {
+                const searchTerm = document.getElementById('searchTreatments').value.toLowerCase();
+                const statusFilter = document.getElementById('filterStatus').value;
+                const typeFilter = document.getElementById('filterType').value;
+                const patientIdFilter = document.getElementById('filterPatientId').value;
+                
+                const filtered = treatments.filter(treatment => {
+                    const matchesSearch = !searchTerm || 
+                        treatment.description.toLowerCase().includes(searchTerm) ||
+                        treatment.patientName.toLowerCase().includes(searchTerm) ||
+                        treatment.doctorName.toLowerCase().includes(searchTerm);
+                    
+                    const matchesStatus = !statusFilter || treatment.status === statusFilter;
+                    const matchesType = !typeFilter || treatment.type === typeFilter;
+                    const matchesPatientId = !patientIdFilter || treatment.patientId.toString() === patientIdFilter;
+                    
+                    return matchesSearch && matchesStatus && matchesType && matchesPatientId;
+                });
+                
+                displayTreatments(filtered);
+            }
+
+            function clearFilters() {
+                document.getElementById('searchTreatments').value = '';
+                document.getElementById('filterStatus').value = '';
+                document.getElementById('filterType').value = '';
+                document.getElementById('filterPatientId').value = '';
+                displayTreatments(treatments);
+            }
+
+            function saveTreatment() {
+                alert('Treatment save functionality would be implemented here');
+            }
+
+            function viewTreatment(id) {
+                alert(`View treatment ${id} functionality would be implemented here`);
+            }
+
+            function editTreatment(id) {
+                alert(`Edit treatment ${id} functionality would be implemented here`);
+            }
+
+            function deleteTreatment(id) {
+                if (confirm('Are you sure you want to delete this treatment?')) {
+                    alert(`Delete treatment ${id} functionality would be implemented here`);
+                }
+            }
+
+            // Add event listeners for filtering
+            document.getElementById('searchTreatments').addEventListener('input', filterTreatments);
+            document.getElementById('filterStatus').addEventListener('change', filterTreatments);
+            document.getElementById('filterType').addEventListener('change', filterTreatments);
+            document.getElementById('filterPatientId').addEventListener('input', filterTreatments);
+        </script>
+    </div>
+</body>
+</html>

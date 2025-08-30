@@ -1,0 +1,16 @@
+patientId,recordType,diagnosis,treatment,medications,notes,doctorName,recordDate
+1,CONSULTATION,Common Cold,Rest and fluids,Acetaminophen 500mg,Patient reports mild symptoms,Dr. Smith,1/15/2024
+2,LAB_RESULTS,Diabetes Monitoring,Continue current medication,Metformin 1000mg,Blood sugar levels stable,Dr. Johnson,1/16/2024
+3,IMAGING,Chest X-Ray Normal,No treatment required,None,Routine screening - clear,Dr. Brown,1/17/2024
+4,PRESCRIPTION,Anxiety Management,Therapy and medication,Sertraline 50mg,Patient responding well to treatment,Dr. Wilson,1/18/2024
+5,CONSULTATION,Hypertension Follow-up,Lifestyle changes,Lisinopril 10mg,Blood pressure improving,Dr. Davis,1/19/2024
+6,LAB_RESULTS,Migraine Investigation,Pain management,Sumatriptan 100mg,Triggers identified,Dr. Miller,1/20/2024
+7,IMAGING,Arthritis Assessment,Physical therapy,Ibuprofen 400mg,Joint inflammation present,Dr. Garcia,1/21/2024
+8,CONSULTATION,Anxiety Counseling,Cognitive therapy,Lorazepam 1mg,Progress noted in sessions,Dr. Martinez,1/22/2024
+9,PRESCRIPTION,Depression Treatment,Antidepressant therapy,Fluoxetine 20mg,Mood stabilizing,Dr. Anderson,1/23/2024
+10,LAB_RESULTS,Thyroid Function,Hormone replacement,Levothyroxine 75mcg,TSH levels normalized,Dr. Taylor,1/24/2024
+11,CONSULTATION,Kidney Stone Follow-up,Dietary modifications,Potassium citrate,No new stones detected,Dr. Thomas,1/25/2024
+12,IMAGING,Fibromyalgia Assessment,Pain management,Pregabalin 150mg,Symptom improvement noted,Dr. Jackson,1/26/2024
+13,LAB_RESULTS,Sleep Study Results,CPAP therapy,None,Sleep apnea confirmed,Dr. White,1/27/2024
+14,CONSULTATION,Osteoporosis Screening,Calcium supplementation,Alendronate 70mg,Bone density stable,Dr. Harris,1/28/2024
+15,PRESCRIPTION,Gout Management,Anti-inflammatory,Allopurinol 300mg,Uric acid levels controlled,Dr. Smith,1/29/2024
