@@ -20,14 +20,14 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
         return (exchange, chain) -> {
             if (isSecured(exchange)) {
                 if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                    return onError(exchange, "Authorization header is missing", HttpStatus.UNAUTHORIZED);
+                    return onError(exchange, "Authorization header is missing");
                 }
 
                 String authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     authHeader = authHeader.substring(7);
                 } else {
-                    return onError(exchange, "Authorization header is invalid", HttpStatus.UNAUTHORIZED);
+                    return onError(exchange, "Authorization header is invalid");
                 }
 
                 // JWT validation would be handled by OAuth2 Resource Server
@@ -44,8 +44,8 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                !path.contains("/eureka");
     }
 
-    private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
-        exchange.getResponse().setStatusCode(httpStatus);
+    private Mono<Void> onError(ServerWebExchange exchange, String err) {
+        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         return exchange.getResponse().setComplete();
     }
 
