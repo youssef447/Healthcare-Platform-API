@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,23 +21,24 @@ import java.util.Optional;
 @RequestMapping("/api/reports")
 @Tag(name = "Reports", description = "Medical Reports Management")
 @SecurityRequirement(name = "bearerAuth")
+@Slf4j
+@RequiredArgsConstructor
 public class ReportController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ReportController.class);
 
-    @Autowired
-    private ReportService reportService;
+
+    private final ReportService reportService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     @Operation(summary = "Get all reports", description = "Retrieve all generated reports")
     public ResponseEntity<List<ReportDto>> getAllReports() {
-        logger.info("API request to get all reports");
+        log.info("API request to get all reports");
         try {
             List<ReportDto> reports = reportService.getAllReports();
             return ResponseEntity.ok(reports);
         } catch (Exception e) {
-            logger.error("Error retrieving reports", e);
+            log.error("Error retrieving reports", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -44,13 +47,13 @@ public class ReportController {
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     @Operation(summary = "Get report by ID", description = "Retrieve a specific report by its ID")
     public ResponseEntity<ReportDto> getReportById(@PathVariable String id) {
-        logger.info("API request to get report by ID: {}", id);
+        log.info("API request to get report by ID: {}", id);
         try {
             Optional<ReportDto> report = reportService.getReportById(id);
             return report.map(ResponseEntity::ok)
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
-            logger.error("Error retrieving report by ID: {}", id, e);
+            log.error("Error retrieving report by ID: {}", id, e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -59,12 +62,12 @@ public class ReportController {
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     @Operation(summary = "Generate new report", description = "Generate a new medical report")
     public ResponseEntity<ReportDto> generateReport(@Valid @RequestBody ReportDto reportDto) {
-        logger.info("API request to generate new report: {}", reportDto.getTitle());
+        log.info("API request to generate new report: {}", reportDto.getTitle());
         try {
             ReportDto generatedReport = reportService.generateReport(reportDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(generatedReport);
         } catch (Exception e) {
-            logger.error("Error generating report", e);
+            log.error("Error generating report", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -73,12 +76,12 @@ public class ReportController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete report", description = "Delete a report by its ID")
     public ResponseEntity<Void> deleteReport(@PathVariable String id) {
-        logger.info("API request to delete report: {}", id);
+        log.info("API request to delete report: {}", id);
         try {
             reportService.deleteReport(id);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
-            logger.error("Error deleting report: {}", id, e);
+            log.error("Error deleting report: {}", id, e);
             return ResponseEntity.internalServerError().build();
         }
     }

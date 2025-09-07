@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -19,22 +21,23 @@ import java.util.Map;
 @Controller
 @RequestMapping("/")
 @Tag(name = "Dashboard", description = "Medical Dashboard Management")
+@Slf4j
+@RequiredArgsConstructor
 public class DashboardController {
 
-    private static final Logger logger = LoggerFactory.getLogger(DashboardController.class);
 
-    @Autowired
-    private DashboardService dashboardService;
+
+    private final DashboardService dashboardService;
 
     @GetMapping({"/", "/dashboard"})
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
     public String dashboard(Model model) {
-        logger.info("Accessing dashboard page");
+        log.info("Accessing dashboard page");
         try {
             DashboardDto dashboardData = dashboardService.getDashboardData();
             model.addAttribute("dashboardData", dashboardData);
         } catch (Exception e) {
-            logger.error("Error loading dashboard data", e);
+            log.error("Error loading dashboard data", e);
             model.addAttribute("error", "Unable to load dashboard data");
         }
         return "dashboard";
@@ -43,21 +46,21 @@ public class DashboardController {
     @GetMapping("/patients")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
     public String patients(Model model) {
-        logger.info("Accessing patients page");
+        log.info("Accessing patients page");
         return "patients";
     }
 
     @GetMapping("/treatments")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
     public String treatments(Model model) {
-        logger.info("Accessing treatments page");
+        log.info("Accessing treatments page");
         return "treatments";
     }
 
     @GetMapping("/reports")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public String reports(Model model) {
-        logger.info("Accessing reports page");
+        log.info("Accessing reports page");
         return "reports";
     }
 }
@@ -66,12 +69,13 @@ public class DashboardController {
 @RequestMapping("/api/dashboard")
 @Tag(name = "Dashboard API", description = "Dashboard REST API endpoints")
 @SecurityRequirement(name = "bearerAuth")
+@Slf4j
+@RequiredArgsConstructor
 class DashboardRestController {
 
-    private static final Logger logger = LoggerFactory.getLogger(DashboardRestController.class);
 
-    @Autowired
-    private DashboardService dashboardService;
+
+    private final DashboardService dashboardService;
 
     @GetMapping("/health")
     @Operation(summary = "Health check endpoint")
@@ -87,12 +91,12 @@ class DashboardRestController {
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
     @Operation(summary = "Get dashboard data", description = "Retrieve comprehensive dashboard data including statistics and charts")
     public ResponseEntity<DashboardDto> getDashboardData() {
-        logger.info("API request for dashboard data");
+        log.info("API request for dashboard data");
         try {
             DashboardDto dashboardData = dashboardService.getDashboardData();
             return ResponseEntity.ok(dashboardData);
         } catch (Exception e) {
-            logger.error("Error retrieving dashboard data via API", e);
+            log.error("Error retrieving dashboard data via API", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -101,12 +105,12 @@ class DashboardRestController {
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
     @Operation(summary = "Get patient analytics", description = "Retrieve detailed patient analytics and statistics")
     public ResponseEntity<Map<String, Object>> getPatientAnalytics() {
-        logger.info("API request for patient analytics");
+        log.info("API request for patient analytics");
         try {
             Map<String, Object> analytics = dashboardService.getPatientAnalytics();
             return ResponseEntity.ok(analytics);
         } catch (Exception e) {
-            logger.error("Error retrieving patient analytics via API", e);
+            log.error("Error retrieving patient analytics via API", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -115,12 +119,12 @@ class DashboardRestController {
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
     @Operation(summary = "Get treatment analytics", description = "Retrieve detailed treatment analytics and statistics")
     public ResponseEntity<Map<String, Object>> getTreatmentAnalytics() {
-        logger.info("API request for treatment analytics");
+        log.info("API request for treatment analytics");
         try {
             Map<String, Object> analytics = dashboardService.getTreatmentAnalytics();
             return ResponseEntity.ok(analytics);
         } catch (Exception e) {
-            logger.error("Error retrieving treatment analytics via API", e);
+            log.error("Error retrieving treatment analytics via API", e);
             return ResponseEntity.internalServerError().build();
         }
     }
