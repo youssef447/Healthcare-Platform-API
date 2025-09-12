@@ -12,91 +12,112 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
-    <!-- Your existing dashboard HTML... (cards, charts, activities) -->
+    <!-- Dashboard Content -->
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Healthcare Dashboard</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="chart-container" style="position: relative; height:300px;">
+                                    <canvas id="monthlyChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-container" style="position: relative; height:300px;">
+                                    <canvas id="genderChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <script>
-        // Handle Keycloak authorization code
-        (async function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is authenticated
+            fetch('/api/dashboard/health')
+                .then(response => {
+                    if (!response.ok) {
+                        // If not authenticated, redirect to login
+                        window.location.href = '/oauth2/authorization/keycloak';
+                        return;
+                    }
+                    // If authenticated, initialize charts
+                    initializeCharts();
+                })
+                .catch(error => {
+                    console.error('Error checking authentication:', error);
+                    window.location.href = '/oauth2/authorization/keycloak';
+                });
 
-            if(code){
-                const clientId = 'HealthcareClient';
-                const redirectUri = window.location.origin + window.location.pathname;
-                const tokenEndpoint = 'http://localhost:8180/realms/healthcare/protocol/openid-connect/token';
-
-                try {
-                    const formData = new URLSearchParams();
-                    formData.append('grant_type', 'authorization_code');
-                    formData.append('client_id', clientId);
-                    formData.append('code', code);
-                    formData.append('redirect_uri', redirectUri);
-
-                    const res = await fetch(tokenEndpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
+            function initializeCharts() {
+                // Monthly Registrations Chart
+                const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+                if (monthlyCtx) {
+                    new Chart(monthlyCtx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                            datasets: [{
+                                label: 'Patient Registrations',
+                                data: [15, 22, 18, 25, 30, 28],
+                                borderColor: 'rgb(75, 192, 192)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                tension: 0.1
+                            }]
                         },
-                        body: formData
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true } }
+                        }
                     });
+                }
 
-                    if(!res.ok) throw new Error('Failed to exchange code');
-
-                    const data = await res.json();
-                    console.log('Access Token:', data.access_token);
-                    // Optionally save token in memory / localStorage
-                    // localStorage.setItem('access_token', data.access_token);
-
-                    // Remove code from URL
-                    window.history.replaceState({}, document.title, redirectUri);
-
-                } catch(e){
-                    console.error(e);
-                    alert('Login failed: ' + e.message);
+                // Gender Distribution Chart
+                const genderCtx = document.getElementById('genderChart').getContext('2d');
+                if (genderCtx) {
+                    new Chart(genderCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Male', 'Female'],
+                            datasets: [{
+                                data: [45, 55],
+                                backgroundColor: ['rgba(54, 162, 235, 0.8)','rgba(255, 99, 132, 0.8)'],
+                                borderColor: ['rgba(54, 162, 235, 1)','rgba(255, 99, 132, 1)'],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
                 }
             }
-        })();
-    </script>
 
-    <script>
-        // Monthly Registrations Chart
-        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-        const monthlyChart = new Chart(monthlyCtx, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'Patient Registrations',
-                    data: [15, 22, 18, 25, 30, 28],
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true } }
-            }
+            // Auto-refresh dashboard every 5 minutes
+            setInterval(() => {
+                fetch('/api/dashboard/health')
+                    .then(response => {
+                        if (response.ok) {
+                            location.reload();
+                        }
+                    });
+            }, 300000); // 5 minutes
         });
-
-        // Gender Distribution Chart
-        const genderCtx = document.getElementById('genderChart').getContext('2d');
-        const genderChart = new Chart(genderCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Male', 'Female'],
-                datasets: [{
-                    data: [45, 55],
-                    backgroundColor: ['rgba(54, 162, 235, 0.8)','rgba(255, 99, 132, 0.8)'],
-                    borderColor: ['rgba(54, 162, 235, 1)','rgba(255, 99, 132, 1)'],
-                    borderWidth: 1
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-
-        function refreshDashboard() { location.reload(); }
     </script>
 </div>
 </body>

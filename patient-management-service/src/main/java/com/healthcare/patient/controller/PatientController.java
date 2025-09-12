@@ -46,7 +46,7 @@ public class PatientController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','NURSE')")
     @Operation(summary = "Get all patients", description = "Retrieve all patients with optional pagination")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Patients retrieved successfully"),
@@ -59,7 +59,7 @@ public class PatientController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE') or (hasRole('PATIENT') and @patientService.isPatientOwner(#id, authentication.name))")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','NURSE') or (hasRole('PATIENT') and @patientService.isPatientOwner(#id, authentication.name))")
     @Operation(summary = "Get patient by ID", description = "Retrieve a specific patient by their ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Patient found"),
@@ -79,7 +79,7 @@ public class PatientController {
     }
 
     @GetMapping("/email/{email}")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','NURSE')")
     @Operation(summary = "Get patient by email", description = "Retrieve a patient by their email address")
     public ResponseEntity<PatientDto> getPatientByEmail(
             @Parameter(description = "Patient email") @PathVariable String email) {
@@ -94,7 +94,7 @@ public class PatientController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','NURSE')")
     @Operation(summary = "Search patients by name", description = "Search for patients by first or last name")
     public ResponseEntity<List<PatientDto>> searchPatientsByName(
             @Parameter(description = "Search term") @RequestParam String name) {
@@ -104,7 +104,7 @@ public class PatientController {
     }
 
     @GetMapping("/gender/{gender}")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','NURSE')")
     @Operation(summary = "Get patients by gender", description = "Retrieve patients filtered by gender")
     public ResponseEntity<List<PatientDto>> getPatientsByGender(
             @Parameter(description = "Patient gender") @PathVariable Patient.Gender gender) {
@@ -114,7 +114,7 @@ public class PatientController {
     }
 
     @GetMapping("/status/{status}")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','NURSE')")
     @Operation(summary = "Get patients by status", description = "Retrieve patients filtered by status")
     public ResponseEntity<List<PatientDto>> getPatientsByStatus(
             @Parameter(description = "Patient status") @PathVariable Patient.PatientStatus status) {
@@ -124,7 +124,7 @@ public class PatientController {
     }
 
     @GetMapping("/blood-type/{bloodType}")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','NURSE')")
     @Operation(summary = "Get patients by blood type", description = "Retrieve patients filtered by blood type")
     public ResponseEntity<List<PatientDto>> getPatientsByBloodType(
             @Parameter(description = "Blood type") @PathVariable String bloodType) {
@@ -253,7 +253,7 @@ public class PatientController {
     }
 
     @GetMapping("/allergies")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','NURSE')")
     @Operation(summary = "Get patients with allergies", description = "Retrieve patients who have recorded allergies")
     public ResponseEntity<List<PatientDto>> getPatientsWithAllergies() {
         log.info("Received request to get patients with allergies");
@@ -262,7 +262,7 @@ public class PatientController {
     }
 
     @GetMapping("/missing-emergency-contact")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR') or hasRole('NURSE')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR','NURSE')")
     @Operation(summary = "Get patients without emergency contact", description = "Retrieve patients missing emergency contact information")
     public ResponseEntity<List<PatientDto>> getPatientsWithoutEmergencyContact() {
         log.info("Received request to get patients without emergency contact");

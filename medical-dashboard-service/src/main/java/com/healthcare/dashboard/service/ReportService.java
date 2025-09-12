@@ -79,31 +79,16 @@ public class ReportService {
     }
 
     private Map<String, Object> generateReportData(Report.ReportType type, Map<String, Object> parameters) {
-        Map<String, Object> data = new HashMap<>();
-        
-        switch (type) {
-            case PATIENT_SUMMARY:
-                data = generatePatientSummaryReport(parameters);
-                break;
-            case TREATMENT_ANALYSIS:
-                data = generateTreatmentAnalysisReport(parameters);
-                break;
-            case MEDICAL_RECORDS_REPORT:
-                data = generateMedicalRecordsReport(parameters);
-                break;
-            case APPOINTMENT_REPORT:
-                data = generateAppointmentReport(parameters);
-                break;
-            case FINANCIAL_REPORT:
-                data = generateFinancialReport(parameters);
-                break;
-            case CUSTOM_REPORT:
-                data = generateCustomReport(parameters);
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown report type: " + type);
-        }
-        
+        Map<String, Object> data = switch (type) {
+            case PATIENT_SUMMARY -> generatePatientSummaryReport(parameters);
+            case TREATMENT_ANALYSIS -> generateTreatmentAnalysisReport(parameters);
+            case MEDICAL_RECORDS_REPORT -> generateMedicalRecordsReport(parameters);
+            case APPOINTMENT_REPORT -> generateAppointmentReport(parameters);
+            case FINANCIAL_REPORT -> generateFinancialReport(parameters);
+            case CUSTOM_REPORT -> generateCustomReport(parameters);
+
+        };
+
         return data;
     }
 

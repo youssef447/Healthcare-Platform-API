@@ -4,10 +4,15 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import com.healthcare.dashboard.config.FeignClientConfig;
+
 import java.util.List;
 import java.util.Map;
 
-@FeignClient(name = "treatment-service-client", url = "${patient-management-service.url:http://localhost:8082}", path = "/api/treatments")
+@FeignClient(name = "treatment-service-client", 
+             url = "${patient-management-service.url:http://localhost:8082}", 
+             path = "/api/treatments",
+             configuration = FeignClientConfig.class)
 public interface TreatmentServiceClient {
 
     @GetMapping("/statistics")
