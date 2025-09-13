@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class DashboardController {
 
     @GetMapping({"/", "/dashboard"})
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
-    public String dashboard(Model model) {
+    public String dashboard(HttpServletRequest request, Model model) {
         log.info("Accessing dashboard page");
         try {
             DashboardDto dashboardData = dashboardService.getDashboardData();
@@ -40,6 +41,8 @@ public class DashboardController {
             log.error("Error loading dashboard data", e);
             model.addAttribute("error", "Unable to load dashboard data");
         }
+        model.addAttribute("currentUri", request.getRequestURI());
+
         return "dashboard";
     }
 

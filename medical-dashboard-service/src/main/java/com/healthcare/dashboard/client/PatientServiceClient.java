@@ -8,10 +8,10 @@ import com.healthcare.dashboard.config.FeignClientConfig;
 import java.util.List;
 import java.util.Map;
 
-@FeignClient(name = "patient-service-client", 
-             url = "${patient-management-service.url:http://localhost:8082}", 
-             path = "/api/patients",
-             configuration = FeignClientConfig.class)
+@FeignClient(name = "patient-service-client",
+        url = "${patient-management-service.url:http://localhost:8082}",
+        path = "/api/patients",
+        configuration = FeignClientConfig.class)
 public interface PatientServiceClient {
 
     @GetMapping("/statistics")

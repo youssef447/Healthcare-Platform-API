@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::title}, ~{::content})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::content})}">
 <head>
     <title>Healthcare Dashboard</title>
 </head>
@@ -95,8 +96,8 @@
                                 borderWidth: 1
                             }]
                         },
-                        options: { 
-                            responsive: true, 
+                        options: {
+                            responsive: true,
                             maintainAspectRatio: false,
                             plugins: {
                                 legend: {
