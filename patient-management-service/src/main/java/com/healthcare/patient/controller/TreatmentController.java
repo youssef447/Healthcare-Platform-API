@@ -61,11 +61,7 @@ public class TreatmentController {
         log.info("Received request to get treatment by ID: {}", id);
         
         Optional<TreatmentDto> treatment = treatmentService.getTreatmentById(id);
-        if (treatment.isPresent()) {
-            return ResponseEntity.ok(treatment.get());
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+        return treatment.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/patient/{patientId}")
