@@ -26,7 +26,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -40,9 +40,12 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
-             .
-                oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter())));
+
+               .oauth2Login(oauth2 -> oauth2
+                .userInfoEndpoint(userInfo -> userInfo
+                        .oidcUserService(new CustomOidcUserService())
+                )
+        );
 
         return http.build();
     }
@@ -59,21 +62,7 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-    private JwtAuthenticationConverter jwtAuthConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(this::extractRoles);
-        return converter;
-    }
 
-    private Collection<GrantedAuthority> extractRoles(Jwt jwt) {
-        Map<String, Object> claim = jwt.getClaimAsMap("realm_access");
-        if (claim == null) {
-            return List.of();
-        }
-        List<?> realmRoles = (List<?>) (claim.getOrDefault("roles", List.of()));
 
-        return realmRoles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                .collect(Collectors.toList());
-    }
+
 }

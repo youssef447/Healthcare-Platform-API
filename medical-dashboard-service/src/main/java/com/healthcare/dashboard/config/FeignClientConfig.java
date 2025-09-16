@@ -23,7 +23,6 @@ public class FeignClientConfig {
     private final OAuth2AuthorizedClientService authorizedClientService;
 
 
-
     @Bean
     public RequestInterceptor requestInterceptor() {
         return requestTemplate -> {

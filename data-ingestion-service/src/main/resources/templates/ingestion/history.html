@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{ingestion/layout}">
+<head>
+    <title>Import History - Healthcare Platform</title>
+    <th:block layout:fragment="head">
+        <link rel="stylesheet" th:href="@{/css/datatables.min.css}">
+    </th:block>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2><i class="fas fa-history text-primary me-2"></i>Import History</h2>
+                    <a href="/ingestion" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i> New Import
+                    </a>
+                </div>
+                <p class="text-muted">View and manage your data import history.</p>
+                <hr>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Recent Imports</h5>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+                                <i class="fas fa-sync-alt me-1"></i> Refresh
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-filter me-1"></i> Filter
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item filter-option" href="#" data-status="all">All</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item filter-option" href="#" data-status="completed">Completed</a></li>
+                                <li><a class="dropdown-item filter-option" href="#" data-status="failed">Failed</a></li>
+                                <li><a class="dropdown-item filter-option" href="#" data-status="processing">Processing</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="importsTable" class="table table-hover" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>File Name</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Records</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Data will be loaded via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Details Modal -->
+        <div class="modal fade" id="importDetailsModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Import Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h6>Import Information</h6>
+                                <dl class="row">
+                                    <dt class="col-sm-4">Import ID:</dt>
+                                    <dd class="col-sm-8" id="importId">-</dd>
+                                    
+                                    <dt class="col-sm-4">File Name:</dt>
+                                    <dd class="col-sm-8" id="fileName">-</dd>
+                                    
+                                    <dt class="col-sm-4">File Type:</dt>
+                                    <dd class="col-sm-8" id="fileType">-</dd>
+                                    
+                                    <dt class="col-sm-4">Status:</dt>
+                                    <dd class="col-sm-8"><span id="statusBadge" class="badge">-</span></dd>
+                                    
+                                    <dt class="col-sm-4">Uploaded By:</dt>
+                                    <dd class="col-sm-8" id="uploadedBy">-</dd>
+                                    
+                                    <dt class="col-sm-4">Uploaded At:</dt>
+                                    <dd class="col-sm-8" id="uploadedAt">-</dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Statistics</h6>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="card bg-light">
+                                            <div class="card-body py-2">
+                                                <h3 class="mb-0 text-primary" id="totalRecords">0</h3>
+                                                <small class="text-muted">Total Records</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="card bg-light">
+                                            <div class="card-body py-2">
+                                                <h3 class="mb-0 text-success" id="successCount">0</h3>
+                                                <small class="text-muted">Successful</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="card bg-light">
+                                            <div class="card-body py-2">
+                                                <h3 class="mb-0 text-danger" id="errorCount">0</h3>
+                                                <small class="text-muted">Errors</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <h6>Progress</h6>
+                                    <div class="progress" style="height: 20px;">
+                                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                             role="progressbar" style="width: 0%" 
+                                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <h6>Error Logs</h6>
+                                <div class="card">
+                                    <div class="card-body p-0">
+                                        <div id="errorLogs" class="p-3" style="max-height: 200px; overflow-y: auto; background-color: #f8f9fa;">
+                                            <p class="text-muted mb-0">No errors found.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="downloadReportBtn">
+                            <i class="fas fa-download me-1"></i> Download Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:src="@{/js/datatables.min.js}"></script>
+        <script th:inline="javascript">
+            $(document).ready(function() {
+                // Initialize DataTable
+                const table = $('#importsTable').DataTable({
+                    ajax: {
+                        url: '/api/ingestion/history',
+                        dataSrc: ''
+                    },
+                    columns: [
+                        { data: 'id' },
+                        { data: 'fileName' },
+                        { 
+                            data: 'fileType',
+                            render: function(data) {
+                                const typeMap = {
+                                    'patients': '<span class="badge bg-info"><i class="fas fa-users me-1"></i> Patients</span>',
+                                    'records': '<span class="badge bg-primary"><i class="fas fa-file-medical me-1"></i> Medical Records</span>'
+                                };
+                                return typeMap[data] || `<span class="badge bg-secondary">${data}</span>`;
+                            }
+                        },
+                        { 
+                            data: 'status',
+                            render: function(data) {
+                                const statusMap = {
+                                    'COMPLETED': 'success',
+                                    'FAILED': 'danger',
+                                    'PROCESSING': 'warning',
+                                    'QUEUED': 'info'
+                                };
+                                return `<span class="badge bg-${statusMap[data] || 'secondary'}">${data}</span>`;
+                            }
+                        },
+                        { 
+                            data: 'recordCount',
+                            render: function(data, type, row) {
+                                if (row.status === 'COMPLETED' || row.status === 'FAILED') {
+                                    return `${row.processedRecords || 0} / ${data}`;
+                                }
+                                return data || '-';
+                            }
+                        },
+                        { 
+                            data: 'createdAt',
+                            render: function(data) {
+                                return new Date(data).toLocaleString();
+                            }
+                        },
+                        {
+                            data: null,
+                            orderable: false,
+                            render: function(data, type, row) {
+                                return `
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary btn-view" data-id="${row.id}" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        ${row.status === 'COMPLETED' ? `
+                                            <a href="/api/ingestion/download/${row.id}" class="btn btn-outline-success" title="Download Report">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        ` : ''}
+                                        ${row.status !== 'PROCESSING' ? `
+                                            <button class="btn btn-outline-danger btn-delete" data-id="${row.id}" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }
+                        }
+                    ],
+                    order: [[5, 'desc']],
+                    responsive: true,
+                    pageLength: 10,
+                    language: {
+                        search: "_INPUT_",
+                        searchPlaceholder: "Search imports...",
+                        lengthMenu: "Show _MENU_ entries per page",
+                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                        infoEmpty: "No entries found",
+                        infoFiltered: "(filtered from _MAX_ total entries)",
+                        zeroRecords: "No matching records found"
+                    },
+                    dom: `
+                        <"row"<"col-md-6"l><"col-md-6"f>>
+                        <"row"<"col-12"tr>>
+                        <"row"<"col-md-5"i><"col-md-7"p>>
+                    `
+                });
+
+                // Handle view details button
+                $('#importsTable tbody').on('click', '.btn-view', function() {
+                    const importId = $(this).data('id');
+                    showImportDetails(importId);
+                });
+
+                // Handle delete button
+                $('#importsTable tbody').on('click', '.btn-delete', function() {
+                    const importId = $(this).data('id');
+                    if (confirm('Are you sure you want to delete this import record?')) {
+                        deleteImport(importId);
+                    }
+                });
+
+                // Handle filter buttons
+                $('.filter-option').on('click', function(e) {
+                    e.preventDefault();
+                    const status = $(this).data('status');
+                    $('.filter-option').removeClass('active');
+                    $(this).addClass('active');
+                    
+                    if (status === 'all') {
+                        table.column(3).search('').draw();
+                    } else {
+                        table.column(3).search('^' + status + '$', true, false).draw();
+                    }
+                });
+
+                // Handle refresh button
+                $('#refreshBtn').on('click', function() {
+                    table.ajax.reload();
+                });
+
+                // Auto-refresh every 30 seconds if there are processing items
+                setInterval(function() {
+                    const hasProcessing = table.column(3).data().toArray().some(status => status === 'PROCESSING');
+                    if (hasProcessing) {
+                        table.ajax.reload(null, false);
+                    }
+                }, 30000);
+
+                // Function to show import details
+                function showImportDetails(importId) {
+                    // In a real implementation, you would fetch the details from the server
+                    fetch(`/api/ingestion/history/${importId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Update modal with data
+                            $('#importId').text(data.id);
+                            $('#fileName').text(data.fileName);
+                            $('#fileType').text(data.fileType);
+                            $('#uploadedBy').text(data.uploadedBy || 'System');
+                            $('#uploadedAt').text(new Date(data.createdAt).toLocaleString());
+                            
+                            // Update status badge
+                            const statusMap = {
+                                'COMPLETED': 'success',
+                                'FAILED': 'danger',
+                                'PROCESSING': 'warning',
+                                'QUEUED': 'info'
+                            };
+                            const statusClass = statusMap[data.status] || 'secondary';
+                            $('#statusBadge')
+                                .removeClass()
+                                .addClass(`badge bg-${statusClass}`)
+                                .text(data.status);
+                            
+                            // Update statistics
+                            $('#totalRecords').text(data.recordCount || 0);
+                            $('#successCount').text(data.processedRecords || 0);
+                            $('#errorCount').text(data.errorCount || 0);
+                            
+                            // Update progress bar
+                            const progress = data.recordCount > 0 
+                                ? Math.round((data.processedRecords / data.recordCount) * 100) 
+                                : 0;
+                            const $progressBar = $('#progressBar');
+                            $progressBar
+                                .css('width', progress + '%')
+                                .attr('aria-valuenow', progress)
+                                .text(progress + '%');
+                            
+                            // Update error logs
+                            const $errorLogs = $('#errorLogs');
+                            if (data.errors && data.errors.length > 0) {
+                                let errorHtml = '<ul class="list-unstyled mb-0">';
+                                data.errors.forEach(error => {
+                                    errorHtml += `<li class="text-danger"><i class="fas fa-times-circle me-2"></i>${error}</li>`;
+                                });
+                                errorHtml += '</ul>';
+                                $errorLogs.html(errorHtml);
+                            } else {
+                                $errorLogs.html('<p class="text-muted mb-0">No errors found.</p>');
+                            }
+                            
+                            // Show the modal
+                            const modal = new bootstrap.Modal(document.getElementById('importDetailsModal'));
+                            modal.show();
+                        })
+                        .catch(error => {
+                            console.error('Error fetching import details:', error);
+                            alert('Failed to load import details. Please try again.');
+                        });
+                }
+                
+                // Function to delete an import
+                function deleteImport(importId) {
+                    fetch(`/api/ingestion/history/${importId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="_csrf"]').attr('content'),
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            table.ajax.reload();
+                            showToast('success', 'Import record deleted successfully');
+                        } else {
+                            throw new Error('Failed to delete import record');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting import:', error);
+                        showToast('danger', 'Failed to delete import record');
+                    });
+                }
+                
+                // Initialize download report button
+                $('#downloadReportBtn').on('click', function() {
+                    const importId = $('#importId').text();
+                    if (importId && importId !== '-') {
+                        window.location.href = `/api/ingestion/history/${importId}/report`;
+                    }
+                });
+            });
+        </script>
+    </th:block>
+</body>
+</html>

@@ -27,7 +27,6 @@ import java.util.Map;
 public class DashboardController {
 
 
-
     private final DashboardService dashboardService;
 
     @GetMapping({"/", "/dashboard"})
@@ -77,16 +76,15 @@ public class DashboardController {
 class DashboardRestController {
 
 
-
     private final DashboardService dashboardService;
 
     @GetMapping("/health")
     @Operation(summary = "Health check endpoint")
     public ResponseEntity<Map<String, String>> health() {
         return ResponseEntity.ok(Map.of(
-            "status", "UP",
-            "service", "medical-dashboard-service",
-            "timestamp", java.time.LocalDateTime.now().toString()
+                "status", "UP",
+                "service", "medical-dashboard-service",
+                "timestamp", java.time.LocalDateTime.now().toString()
         ));
     }
 

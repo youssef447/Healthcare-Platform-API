@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{ingestion/layout}">
+<head>
+    <title>Data Upload - Healthcare Platform</title>
+    <th:block layout:fragment="head">
+        <link rel="stylesheet" th:href="@{/css/dropzone.css}">
+    </th:block>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2><i class="fas fa-file-upload text-primary me-2"></i>Data Upload</h2>
+                <p class="text-muted">Upload patient and medical record data in CSV or JSON format.</p>
+                <hr>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">Upload Files</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="uploadForm" th:action="@{/api/ingestion/patients/upload}" method="post" enctype="multipart/form-data" class="dropzone" id="fileDropzone">
+                            <div class="dz-message" data-dz-message>
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <h5>Drop files here or click to upload</h5>
+                                <p class="text-muted">Supported formats: .csv, .json</p>
+                            </div>
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        </form>
+                        
+                        <div class="mt-4">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="dataType" id="patientsRadio" value="patients" checked>
+                                <label class="form-check-label" for="patientsRadio">
+                                    <i class="fas fa-user-injured me-1"></i> Patients
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="dataType" id="recordsRadio" value="records">
+                                <label class="form-check-label" for="recordsRadio">
+                                    <i class="fas fa-file-medical me-1"></i> Medical Records
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="validateOnly">
+                                <label class="form-check-label" for="validateOnly">
+                                    Validate only (don't save to database)
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="button" id="startUpload" class="btn btn-primary">
+                                <i class="fas fa-upload me-1"></i> Start Upload
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upload Progress -->
+                <div id="uploadProgress" class="card mt-4 d-none">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">Upload Progress</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-3" style="height: 25px;">
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%" 
+                                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                        </div>
+                        <div id="uploadStatus" class="small text-muted">Preparing upload...</div>
+                        <div id="uploadDetails" class="mt-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Upload Instructions -->
+        <div class="row mt-5">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-info-circle text-primary me-2"></i>Upload Instructions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>CSV Format (Example):</h6>
+                        <pre class="bg-light p-3 rounded">id,firstName,lastName,dateOfBirth,gender,email,phone,address
+1,John,Doe,1980-05-15,MALE,john.doe@example.com,1234567890,123 Main St
+2,Jane,Smith,1975-10-22,FEMALE,jane.smith@example.com,0987654321,456 Oak Ave</pre>
+                        
+                        <h6 class="mt-4">JSON Format (Example):</h6>
+                        <pre class="bg-light p-3 rounded">[
+  {
+    "id": 1,
+    "firstName": "John",
+    "lastName": "Doe",
+    "dateOfBirth": "1980-05-15",
+    "gender": "MALE",
+    "email": "john.doe@example.com",
+    "phone": "1234567890",
+    "address": "123 Main St"
+  }
+]</pre>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Note:</strong> The first row should contain headers. All fields are required.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <th:block layout:fragment="scripts">
+        <script th:src="@{/js/dropzone.js}"></script>
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialize Dropzone
+                Dropzone.autoDiscover = false;
+                
+                const myDropzone = new Dropzone("#fileDropzone", {
+                    url: "/api/ingestion/patients/upload",
+                    paramName: "file",
+                    maxFilesize: 10, // MB
+                    acceptedFiles: ".csv,.json",
+                    addRemoveLinks: true,
+                    autoProcessQueue: false,
+                    uploadMultiple: false,
+                    headers: {
+                        'X-CSRF-TOKEN': $('input[name="_csrf"]').val()
+                    },
+                    init: function() {
+                        this.on("addedfile", function(file) {
+                            // Update the form action based on the selected data type
+                            const dataType = $('input[name="dataType"]:checked').val();
+                            const url = `/api/ingestion/${dataType}/upload`;
+                            this.options.url = url;
+                            
+                            // Show the progress bar
+                            $('#uploadProgress').removeClass('d-none');
+                        });
+                        
+                        this.on("sending", function(file, xhr, formData) {
+                            // Add additional form data
+                            formData.append("validateOnly", $('#validateOnly').is(':checked'));
+                            
+                            // Update status
+                            $('#uploadStatus').html(`<i class="fas fa-spinner fa-spin me-1"></i> Uploading ${file.name}...`);
+                        });
+                        
+                        this.on("uploadprogress", function(file, progress) {
+                            // Update progress bar
+                            const progressBar = $('#progressBar');
+                            const progressPercent = Math.round(progress);
+                            progressBar.css('width', progressPercent + '%');
+                            progressBar.attr('aria-valuenow', progressPercent);
+                            progressBar.text(progressPercent + '%');
+                        });
+                        
+                        this.on("success", function(file, response) {
+                            // Handle successful upload
+                            $('#uploadStatus').html(`
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>Upload successful!</strong> ${response.recordsProcessed} records processed.
+                                </div>
+                            `);
+                            
+                            // Add details if available
+                            if (response.errors && response.errors.length > 0) {
+                                let errorHtml = '<div class="alert alert-warning mt-2">';
+                                errorHtml += '<h6><i class="fas fa-exclamation-triangle me-2"></i>Some issues found:</h6><ul class="mb-0">';
+                                response.errors.forEach(error => {
+                                    errorHtml += `<li>${error}</li>`;
+                                });
+                                errorHtml += '</ul></div>';
+                                $('#uploadDetails').html(errorHtml);
+                            }
+                        });
+                        
+                        this.on("error", function(file, errorMessage) {
+                            // Handle errors
+                            $('#uploadStatus').html(`
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    <strong>Upload failed:</strong> ${errorMessage}
+                                </div>
+                            `);
+                        });
+                    }
+                });
+                
+                // Handle the start upload button
+                $('#startUpload').on('click', function() {
+                    if (myDropzone.getQueuedFiles().length === 0) {
+                        alert('Please select a file to upload.');
+                        return;
+                    }
+                    myDropzone.processQueue();
+                });
+                
+                // Update form action when data type changes
+                $('input[name="dataType"]').change(function() {
+                    const dataType = $(this).val();
+                    const url = `/api/ingestion/${dataType}/upload`;
+                    myDropzone.options.url = url;
+                });
+            });
+        </script>
+    </th:block>
+</body>
+</html>
