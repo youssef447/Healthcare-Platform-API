@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @FeignClient(name = "patient-management-service",
+             contextId = "treatmentClient",
              path = "/api/treatments",
              configuration = FeignClientConfig.class)
 public interface TreatmentServiceClient {

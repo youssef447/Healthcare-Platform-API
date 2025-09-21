@@ -66,21 +66,6 @@ public class SecurityConfig {
         return source;
     }
 
-    private JwtAuthenticationConverter jwtAuthConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(this::extractRoles);
-        return converter;
-    }
 
-    private Collection<GrantedAuthority> extractRoles(Jwt jwt) {
-        Map<String, Object> claim = jwt.getClaimAsMap("realm_access");
-        if (claim == null) {
-            return List.of();
-        }
-        List<?> realmRoles = (List<?>) (claim.getOrDefault("roles", List.of()));
 
-        return realmRoles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                .collect(Collectors.toList());
-    }
 }

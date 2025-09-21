@@ -8,7 +8,8 @@ import com.healthcare.dashboard.config.FeignClientConfig;
 import java.util.List;
 import java.util.Map;
 
-@FeignClient( name = "patient-management-service",
+@FeignClient(name = "patient-management-service",
+        contextId = "patientClient",
         path = "/api/patients",
         configuration = FeignClientConfig.class)
 public interface PatientServiceClient {
