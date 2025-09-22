@@ -18,7 +18,6 @@ public class KafkaProducerService {
 
     private static final String PATIENT_TOPIC = "patient-events";
     private static final String MEDICAL_RECORD_TOPIC = "medical-record-events";
-    private static final String INGESTION_TOPIC = "ingestion-events";
 
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -33,10 +32,6 @@ public class KafkaProducerService {
         publishEvent(MEDICAL_RECORD_TOPIC, event);
     }
 
-    public void publishIngestionEvent(IngestionEvent event) {
-        event.setEventId(UUID.randomUUID().toString());
-        publishEvent(INGESTION_TOPIC, event);
-    }
 
     private void publishEvent(String topic, IngestionEvent event) {
         try {
@@ -81,23 +76,5 @@ public class KafkaProducerService {
         publishMedicalRecordEvent(event);
     }
 
-    public void publishFileProcessed(String fileName, int recordsProcessed) {
-        IngestionEvent event = new IngestionEvent(
-            IngestionEvent.EventType.FILE_PROCESSED.name(),
-            "File processed: " + fileName + " (" + recordsProcessed + " records)"
-        );
-        event.setStatus(IngestionEvent.Status.SUCCESS.name());
-        event.setSource("data-ingestion-service");
-        publishIngestionEvent(event);
-    }
 
-    public void publishProcessingError(String fileName, String errorMessage) {
-        IngestionEvent event = new IngestionEvent(
-            IngestionEvent.EventType.PROCESSING_ERROR.name(),
-            "Error processing file: " + fileName + " - " + errorMessage
-        );
-        event.setStatus(IngestionEvent.Status.FAILED.name());
-        event.setSource("data-ingestion-service");
-        publishIngestionEvent(event);
-    }
 }

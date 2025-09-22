@@ -4,7 +4,6 @@ import com.healthcare.ingestion.config.ApiResponseBody;
 import com.healthcare.ingestion.dto.JobResponseDTO;
 
 import com.healthcare.ingestion.service.BatchIngestionService;
-import com.healthcare.ingestion.service.DataIngestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -29,7 +28,6 @@ import java.util.Map;
 public class DataIngestionController {
 
 
-    private final DataIngestionService dataIngestionService;
     private final BatchIngestionService batchIngestionService;
 
 

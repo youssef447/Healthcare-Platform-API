@@ -4,9 +4,8 @@ import com.healthcare.ingestion.dto.MedicalRecordDto;
 import com.healthcare.ingestion.mapper.EntityMapper;
 import com.healthcare.ingestion.model.MedicalRecord;
 import com.healthcare.ingestion.model.Patient;
-import com.healthcare.ingestion.repository.MedicalRecordRepository;
 import com.healthcare.ingestion.repository.PatientRepository;
-import com.healthcare.ingestion.service.KafkaProducerService;
+import com.healthcare.ingestion.service.MedicalRecordIngestionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -35,7 +34,6 @@ import org.springframework.validation.BindException;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,9 +45,7 @@ public class MedicalRecordCsvJobConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-    private final PatientRepository patientRepository;
-    private final MedicalRecordRepository medicalRecordRepository;
-    private final KafkaProducerService kafkaProducerService;
+
 
     @Bean
     public Job medicalRecordCsvJob(Step medicalRecordCsvStep) {
@@ -168,7 +164,7 @@ public class MedicalRecordCsvJobConfig {
     }
 
     @Bean
-    public ItemProcessor<MedicalRecordDto, MedicalRecord> medicalRecordProcessor() {
+    public ItemProcessor<MedicalRecordDto, MedicalRecord> medicalRecordProcessor(PatientRepository patientRepository) {
         return dto -> {
             if (dto.getPatientId() == null) return null;
             Optional<Patient> patientOpt = patientRepository.findById(dto.getPatientId());
@@ -181,23 +177,9 @@ public class MedicalRecordCsvJobConfig {
     }
 
     @Bean
-    public ItemWriter<MedicalRecord> medicalRecordWriter() {
-        return items -> {
-            List<MedicalRecord> saved = new ArrayList<>();
-            for (MedicalRecord rec : items) {
-                MedicalRecord savedRecord = medicalRecordRepository.save(rec);
-                saved.add(savedRecord);
-                try {
-                    kafkaProducerService.publishMedicalRecordCreated(
-                            savedRecord.getPatient().getId(),
-                            savedRecord.getId(),
-                            savedRecord.getRecordType()
-                    );
-                } catch (Exception e) {
-                    log.error("Failed to publish Kafka event for medical record {}", savedRecord.getId(), e);
-                }
-            }
-            log.info("Batch writer saved {} medical records", saved.size());
-        };
+
+    public ItemWriter<MedicalRecord> medicalRecordWriter(MedicalRecordIngestionService service) {
+        return items -> items.forEach(service::ingestMedicalRecord);
     }
+
 }

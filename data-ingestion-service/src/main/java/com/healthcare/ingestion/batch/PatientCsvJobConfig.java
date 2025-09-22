@@ -5,6 +5,7 @@ import com.healthcare.ingestion.mapper.EntityMapper;
 import com.healthcare.ingestion.model.Patient;
 import com.healthcare.ingestion.repository.PatientRepository;
 import com.healthcare.ingestion.service.KafkaProducerService;
+import com.healthcare.ingestion.service.PatientIngestionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -33,7 +34,6 @@ import org.springframework.validation.BindException;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -44,8 +44,7 @@ public class PatientCsvJobConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-    private final PatientRepository patientRepository;
-    private final KafkaProducerService kafkaProducerService;
+    private final PatientIngestionService patientIngestionService;
 
     @Bean
     public Job patientCsvJob(Step patientCsvStep) {
@@ -68,7 +67,7 @@ public class PatientCsvJobConfig {
                 .writer(patientWriter)
                 .faultTolerant()
                 .skip(Exception.class)
-                .skipLimit(1000)
+                .skipLimit(100)
                 .build();
     }
 
@@ -101,14 +100,14 @@ public class PatientCsvJobConfig {
     public FieldSetMapper<PatientDto> patientFieldSetMapper() {
         return new FieldSetMapper<>() {
             @Override
-            public PatientDto mapFieldSet(FieldSet fieldSet) throws BindException {
+            public PatientDto mapFieldSet(FieldSet fieldSet) {
                 PatientDto dto = new PatientDto();
                 dto.setFirstName(fieldSet.readString("firstName"));
                 dto.setLastName(fieldSet.readString("lastName"));
                 String dob = fieldSet.readString("dateOfBirth");
                 dto.setDateOfBirth(parseDate(dob));
                 String gender = fieldSet.readString("gender");
-                if (gender != null && !gender.isBlank()) {
+                if (!gender.isBlank()) {
                     try {
                         dto.setGender(Patient.Gender.valueOf(gender.trim().toUpperCase()));
                     } catch (Exception e) {
@@ -123,47 +122,40 @@ public class PatientCsvJobConfig {
 
             private LocalDate parseDate(String value) {
                 if (value == null || value.isBlank()) return null;
-                try {
-                    return LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE);
-                } catch (Exception e) {
+
+                List<DateTimeFormatter> formatters = List.of(
+                        DateTimeFormatter.ISO_LOCAL_DATE,
+                        DateTimeFormatter.ofPattern("MM/dd/yyyy"),
+                        DateTimeFormatter.ofPattern("dd-MM-yyyy")
+                );
+
+                for (DateTimeFormatter formatter : formatters) {
                     try {
-                        return LocalDate.parse(value, DateTimeFormatter.ofPattern("MM/dd/yyyy"));
-                    } catch (Exception ex) {
-                        log.warn("Unable to parse date: {}", value);
-                        return null;
+                        return LocalDate.parse(value, formatter);
+                    } catch (Exception ignored) {
                     }
                 }
+
+                log.warn("Unable to parse date: {}", value);
+                return null;
             }
         };
     }
 
+
+    /// Convert PatientDto to Patient to be wrote to DB
     @Bean
     public ItemProcessor<PatientDto, Patient> patientProcessor() {
-        return dto -> EntityMapper.toPatient(dto);
+        return EntityMapper::toPatient;
     }
 
     @Bean
     public ItemWriter<Patient> patientWriter() {
         return items -> {
-            List<Patient> saved = new ArrayList<>();
             for (Patient patient : items) {
-                if (patient.getEmail() == null || patient.getEmail().isBlank()) {
-                    log.warn("Skipping patient with missing email: {} {}", patient.getFirstName(), patient.getLastName());
-                    continue;
-                }
-                if (patientRepository.existsByEmail(patient.getEmail())) {
-                    log.info("Patient with email {} already exists, skipping", patient.getEmail());
-                    continue;
-                }
-                Patient savedPatient = patientRepository.save(patient);
-                saved.add(savedPatient);
-                try {
-                    kafkaProducerService.publishPatientCreated(savedPatient.getId(), savedPatient.getFullName());
-                } catch (Exception e) {
-                    log.error("Failed to publish Kafka event for patient {}", savedPatient.getId(), e);
-                }
+                patientIngestionService.ingestPatient(patient);
+
             }
-            log.info("Batch writer saved {} new patients", saved.size());
         };
     }
 }

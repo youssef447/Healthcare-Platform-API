@@ -9,7 +9,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class EntityMapper {
 
-    public static Patient toPatient(PatientDto dto) {
+    public Patient toPatient(PatientDto dto) {
         return Patient.builder()
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
@@ -27,7 +27,7 @@ public class EntityMapper {
                 .build();
     }
 
-    public static MedicalRecord toMedicalRecord(MedicalRecordDto dto, Patient patient) {
+    public MedicalRecord toMedicalRecord(MedicalRecordDto dto, Patient patient) {
         return MedicalRecord.builder()
                 .patient(patient)
                 .recordType(dto.getRecordType())
