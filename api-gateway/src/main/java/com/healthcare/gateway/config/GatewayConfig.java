@@ -23,9 +23,9 @@ public class GatewayConfig {
                 .route("medical-dashboard", r -> r.path("/api/dashboard/**", "/api/reports/**")
                         .uri("lb://medical-dashboard-service"))
 
-                // Eureka Server Route
+             /*   // Eureka Server Route
                 .route("eureka-server", r -> r.path("/eureka/**")
-                        .uri("lb://eureka-server"))
+                        .uri("lb://eureka-server"))*/
 
                 .build();
     }

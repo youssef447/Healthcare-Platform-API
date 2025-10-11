@@ -33,6 +33,8 @@ public class KafkaProducerService {
     }
 
 
+
+
     private void publishEvent(String topic, IngestionEvent event) {
         try {
             CompletableFuture<SendResult<String, Object>> future = 

@@ -1,11 +1,11 @@
 package com.healthcare.ingestion.batch;
 
 import com.healthcare.ingestion.dto.MedicalRecordDto;
-import com.healthcare.ingestion.mapper.EntityMapper;
+import com.healthcare.ingestion.mapper.MedicalRecordMapper;
 import com.healthcare.ingestion.model.MedicalRecord;
-import com.healthcare.ingestion.model.Patient;
+import com.healthcare.ingestion.repository.MedicalRecordRepository;
 import com.healthcare.ingestion.repository.PatientRepository;
-import com.healthcare.ingestion.service.MedicalRecordIngestionService;
+import com.healthcare.ingestion.service.KafkaProducerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -35,7 +35,6 @@ import org.springframework.validation.BindException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 
 @Configuration
 @EnableBatchProcessing
@@ -45,7 +44,7 @@ public class MedicalRecordCsvJobConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-
+    private final MedicalRecordMapper medicalRecordMapper;
 
     @Bean
     public Job medicalRecordCsvJob(Step medicalRecordCsvStep) {
@@ -165,21 +164,21 @@ public class MedicalRecordCsvJobConfig {
 
     @Bean
     public ItemProcessor<MedicalRecordDto, MedicalRecord> medicalRecordProcessor(PatientRepository patientRepository) {
-        return dto -> {
-            if (dto.getPatientId() == null) return null;
-            Optional<Patient> patientOpt = patientRepository.findById(dto.getPatientId());
-            if (patientOpt.isEmpty()) {
-                log.warn("Patient with ID {} not found, skipping record", dto.getPatientId());
-                return null; // filtered
-            }
-            return EntityMapper.toMedicalRecord(dto, patientOpt.get());
-        };
+        return medicalRecordMapper::toMedicalRecord;
     }
 
     @Bean
-
-    public ItemWriter<MedicalRecord> medicalRecordWriter(MedicalRecordIngestionService service) {
-        return items -> items.forEach(service::ingestMedicalRecord);
+    public ItemWriter<MedicalRecord> medicalRecordWriter(MedicalRecordRepository medicalRecordRepository, KafkaProducerService kafka) {
+        return records -> {
+            List<? extends MedicalRecord> savedRecords = medicalRecordRepository.saveAll(records);
+            for (MedicalRecord record : savedRecords) {
+                kafka.publishMedicalRecordCreated(
+                        record.getPatient().getId(),
+                        record.getId(),
+                        record.getRecordType()
+                );
+            }
+        };
     }
 
 }

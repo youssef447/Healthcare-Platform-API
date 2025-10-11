@@ -31,6 +31,7 @@ public class PatientDto {
     private Patient.Gender gender;
 
     @Email(message = "Email should be valid")
+    @NotBlank
     private String email;
 
     private String phoneNumber;

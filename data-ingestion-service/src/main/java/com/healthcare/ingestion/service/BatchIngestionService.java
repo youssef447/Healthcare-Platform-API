@@ -20,6 +20,7 @@ import java.nio.file.Path;
 public class BatchIngestionService {
 
     private final JobLauncher jobLauncher;
+    // configured jobs
     private final Job patientCsvJob;
     private final Job medicalRecordCsvJob;
 
