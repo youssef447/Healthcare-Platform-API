@@ -163,7 +163,7 @@ public class MedicalRecordCsvJobConfig {
     }
 
     @Bean
-    public ItemProcessor<MedicalRecordDto, MedicalRecord> medicalRecordProcessor(PatientRepository patientRepository) {
+    public ItemProcessor<MedicalRecordDto, MedicalRecord> medicalRecordProcessor() {
         return medicalRecordMapper::toMedicalRecord;
     }
 
@@ -174,8 +174,7 @@ public class MedicalRecordCsvJobConfig {
             for (MedicalRecord record : savedRecords) {
                 kafka.publishMedicalRecordCreated(
                         record.getPatient().getId(),
-                        record.getId(),
-                        record.getRecordType()
+                        record.getId()
                 );
             }
         };

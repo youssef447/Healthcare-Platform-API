@@ -173,7 +173,7 @@ public class PatientCsvJobConfig {
         return patients -> {
             List<? extends Patient> savedPatients = patientRepository.saveAll(patients);
             for (Patient saved : savedPatients) {
-                kafkaProducer.publishPatientCreated(saved.getId(), saved.getFullName());
+                kafkaProducer.publishPatientCreated(saved.getId());
             }
         };
 
