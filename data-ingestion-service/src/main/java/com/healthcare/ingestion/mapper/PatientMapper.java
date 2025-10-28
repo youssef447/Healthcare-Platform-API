@@ -1,7 +1,6 @@
 package com.healthcare.ingestion.mapper;
 
 import com.healthcare.ingestion.dto.PatientDto;
-import com.healthcare.ingestion.model.Patient;
 import org.springframework.stereotype.Component;
 
 @Component

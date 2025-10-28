@@ -1,6 +1,8 @@
 package com.healthcare.patient.service;
 
 
+import com.healthcare.patient.dto.PatientDto;
+import com.healthcare.patient.mapper.PatientMapper;
 import com.healthcare.patient.model.MedicalRecord;
 import com.healthcare.patient.model.Patient;
 import com.healthcare.patient.repository.MedicalRecordRepository;
@@ -21,6 +23,7 @@ public class KafkaConsumerService {
 
     private final PatientRepository patientRepository;
     private final MedicalRecordRepository medicalRecordRepository;
+    private final PatientMapper patientMapper;
 
 
     /**
@@ -34,22 +37,24 @@ public class KafkaConsumerService {
             log.info("Received patient event: {}", event);
 
             String eventType = (String) event.get("eventType");
-            String patientIdStr = (String) event.get("patientId");
             String source = (String) event.get("source");
-
-            if (patientIdStr == null || eventType == null) {
-                log.warn("Invalid event: missing patientId or eventType");
-                return;
+            Object payload = event.get("payload");
+            if (payload instanceof PatientDto patientDTO) {
+                Patient patient = PatientMapper.INSTANCE.toPatient(patientDTO);
+                // process the patient object
+            } else {
+                // Handle error (maybe log it)
+                throw new IllegalArgumentException("Payload is not of type PatientDTO");
             }
 
-            Long patientId = Long.parseLong(patientIdStr);
+
 
             switch (eventType) {
                 case "PATIENT_CREATED":
-                    handlePatientCreated(patientId, source);
+                    handlePatientCreated(payload,source);
                     break;
                 case "PATIENT_UPDATED":
-                    handlePatientUpdated(patientId, source);
+                    handlePatientUpdated(payload,source);
                     break;
                 default:
                     log.warn("Unknown patient event type: {}", eventType);
@@ -111,7 +116,7 @@ public class KafkaConsumerService {
      * - Logs patient creation for audit trail
      * - Updates analytics and checks for missing critical information
      */
-    private void handlePatientCreated(Long patientId, String source) {
+    private void handlePatientCreated(Object payload, String source) {
         log.info("Processing PATIENT_CREATED event for patient ID: {} from source: {}", patientId, source);
 
         Optional<Patient> patientOpt = patientRepository.findById(patientId);
@@ -125,23 +130,12 @@ public class KafkaConsumerService {
             long totalPatients = patientRepository.count();
             log.info("Total patients in system: {}", totalPatients);
 
-            // Check for missing critical information
-            if (patient.getEmergencyContact() == null || patient.getEmergencyContact().isEmpty()) {
-                log.warn("Patient {} has no emergency contact - flagging for follow-up", patientId);
-            }
 
-            // Log audit trail
-            log.info("Audit: Patient {} created at {} from {}",
-                    patientId, patient.getCreatedAt(), source);
 
-            // Future enhancements:
-            // - Send welcome email/SMS
-            // - Create default appointment
-            // - Trigger insurance verification
-            // - Update dashboard statistics
 
-        } else {
-            log.warn("Patient ID {} not found in database - possible sync issue", patientId);
+
+
+
         }
     }
 
@@ -151,33 +145,15 @@ public class KafkaConsumerService {
      * - Logs update for audit trail
      * - Checks for critical status changes
      */
-    private void handlePatientUpdated(Long patientId, String source) {
+    private void handlePatientUpdated(Object payload, String source) {
+        Patient patient = (Patient) payload;
         log.info("Processing PATIENT_UPDATED event for patient ID: {} from source: {}", patientId, source);
 
         Optional<Patient> patientOpt = patientRepository.findById(patientId);
 
-        if (patientOpt.isPresent()) {
-            Patient patient = patientOpt.get();
-            log.info("Patient update validated: {} (ID: {})", patient.getFullName(), patient.getId());
+        patientOpt.ifPresent(patient -> {
 
-            // Log audit trail
-            log.info("Audit: Patient {} updated at {} from {}",
-                    patientId, patient.getUpdatedAt(), source);
-
-            // Check status changes
-            if (patient.getStatus() == Patient.PatientStatus.DECEASED) {
-                log.warn("Patient {} marked as DECEASED - triggering cleanup procedures", patientId);
-                // Could trigger: cancel appointments, notify staff, archive records
-            }
-
-            // Future enhancements:
-            // - Send notification if contact info changed
-            // - Update related appointments/treatments
-            // - Sync with external systems
-
-        } else {
-            log.warn("Patient ID {} not found in database", patientId);
-        }
+        });
     }
 
     /**

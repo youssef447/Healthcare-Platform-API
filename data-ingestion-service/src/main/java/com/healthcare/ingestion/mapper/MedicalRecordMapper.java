@@ -1,10 +1,6 @@
 package com.healthcare.ingestion.mapper;
 
 import com.healthcare.ingestion.dto.MedicalRecordDto;
-import com.healthcare.ingestion.dto.PatientDto;
-import com.healthcare.ingestion.model.MedicalRecord;
-import com.healthcare.ingestion.model.Patient;
-import lombok.experimental.UtilityClass;
 import org.springframework.stereotype.Component;
 
 @Component

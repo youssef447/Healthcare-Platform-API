@@ -2,10 +2,9 @@ package com.healthcare.ingestion.batch;
 
 import com.healthcare.ingestion.dto.PatientDto;
 import com.healthcare.ingestion.mapper.PatientMapper;
-import com.healthcare.ingestion.model.Patient;
+import com.healthcare.ingestion.model.OutboxIngestionEvent;
 
-import com.healthcare.ingestion.repository.PatientRepository;
-import com.healthcare.ingestion.service.KafkaProducerService;
+import com.healthcare.ingestion.repository.OutboxIngestionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -43,7 +42,6 @@ public class PatientCsvJobConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-    private final PatientMapper patientMapper;
 
     @Bean
     public Job patientCsvJob(Step patientCsvStep) {
@@ -58,12 +56,12 @@ public class PatientCsvJobConfig {
     //each step consist of (reader, processor and writer)
     @Bean
     public Step patientCsvStep(FlatFileItemReader<PatientDto> patientCsvReader,
-                               ItemProcessor<PatientDto, Patient> patientProcessor,
-                               ItemWriter<Patient> patientWriter) {
+                               ItemProcessor<PatientDto, OutboxIngestionEvent> patientProcessor,
+                               ItemWriter<OutboxIngestionEvent> patientWriter) {
 
 
         return new StepBuilder("patientCsvStep", jobRepository)
-                .<PatientDto, Patient>chunk(100, transactionManager) // transactionManager controls the transaction for each chunk, important for atomicity
+                .<PatientDto, OutboxIngestionEvent>chunk(100, transactionManager) // transactionManager controls the transaction for each chunk, important for atomicity
                 .reader(patientCsvReader)
                 .processor(patientProcessor)
                 .writer(patientWriter)
@@ -75,8 +73,10 @@ public class PatientCsvJobConfig {
     }
 
     @Bean
-    // This makes the bean shadowed by the lifetime of the Step, meaning it is created when the Step runs, not when the global context starts.
-    // Practical reason: So we can add "#{jobParameters['filePath']}" — if there was no StepScope, Spring wouldn't be able to inject the job parameter at runtime.
+    // This makes the bean shadowed by the lifetime of the Step,
+    // meaning it is created when the Step runs, not when the global context starts.
+    // Practical reason: So we can add "#{jobParameters['filePath']}" —
+    // if there was no StepScope, Spring wouldn't be able to inject the job parameter at runtime.
     @StepScope
     public FlatFileItemReader<PatientDto> patientCsvReader(@Value("#{jobParameters['filePath']}") String filePath) {
         FlatFileItemReader<PatientDto> reader = new FlatFileItemReader<>();
@@ -124,7 +124,7 @@ public class PatientCsvJobConfig {
                 String gender = fieldSet.readString("gender");
                 if (!gender.isBlank()) {
                     try {
-                        dto.setGender(Patient.Gender.valueOf(gender.trim().toUpperCase()));
+                        dto.setGender(gender.trim().toUpperCase());
                     } catch (Exception e) {
                         log.warn("Invalid gender value: {}", gender);
                     }
@@ -158,24 +158,20 @@ public class PatientCsvJobConfig {
     }
 
 
-    /// Convert PatientDto to Patient to be written to DB, we can do other processing here or validation
     @Bean
-    public ItemProcessor<PatientDto, Patient> patientProcessor() {
-
-
-        return patientMapper::toPatient;
+    public ItemProcessor<PatientDto, OutboxIngestionEvent> patientProcessor() {
+        return (dto) -> OutboxIngestionEvent.builder()
+                .source("data-ingestion-service")
+                .eventType(OutboxIngestionEvent.EventType.PATIENT_CREATED)
+                .payload(dto)
+                .build();
 
     }
 
     @Bean
-    public ItemWriter<Patient> patientWriter(KafkaProducerService kafkaProducer,
-                                             PatientRepository patientRepository) {
-        return patients -> {
-            List<? extends Patient> savedPatients = patientRepository.saveAll(patients);
-            for (Patient saved : savedPatients) {
-                kafkaProducer.publishPatientCreated(saved.getId());
-            }
-        };
+    public ItemWriter<OutboxIngestionEvent> patientWriter(
+            OutboxIngestionRepository outboxIngestionRepository) {
+        return outboxIngestionRepository::saveAll;
 
     }
 }

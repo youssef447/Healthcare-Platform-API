@@ -1,13 +1,12 @@
 package com.healthcare.ingestion.service;
 
-import com.healthcare.ingestion.model.IngestionEvent;
+import com.healthcare.ingestion.model.OutboxIngestionEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -23,42 +22,15 @@ public class KafkaProducerService {
 
 
     /**
-     * Helper to publish 'Patient Created' event
-     */
-    public void publishPatientCreated(Long patientId) {
-        IngestionEvent event = IngestionEvent.builder()
-                .eventId(UUID.randomUUID().toString())
-                .eventType(IngestionEvent.EventType.PATIENT_CREATED)
-                .patientId(patientId.toString())
-                .source(INGESTION_SOURCE)
-                .build();
-
-        publishEvent(PATIENT_TOPIC, event);
-    }
-
-
-    /**
-     * Helper to publish 'Medical Record Created' event
-     */
-    public void publishMedicalRecordCreated(Long patientId, Long recordId) {
-        IngestionEvent event = IngestionEvent.builder()
-                .eventId(UUID.randomUUID().toString())
-                .eventType(IngestionEvent.EventType.MEDICAL_RECORD_CREATED)
-                .patientId(patientId.toString())
-                .recordId(recordId.toString())
-                .source(INGESTION_SOURCE)
-
-                .build();
-        publishEvent(MEDICAL_RECORD_TOPIC, event);
-    }
-
-    /**
      * Generic event publisher with logging and exception handling
      */
-    private void publishEvent(String topic, IngestionEvent event) {
+    public void publishEvent(OutboxIngestionEvent event) {
+        String topic = event.getEventType() == OutboxIngestionEvent.EventType.PATIENT_CREATED ?
+                PATIENT_TOPIC :
+                MEDICAL_RECORD_TOPIC;
         try {
             CompletableFuture<SendResult<String, Object>> future =
-                    kafkaTemplate.send(topic, event.getEventId(), event);
+                    kafkaTemplate.send(topic, event.getId().toString(), event);
 
             future.whenComplete((result, exception) -> {
                 if (exception == null) {

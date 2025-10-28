@@ -1,17 +1,16 @@
 package com.healthcare.ingestion.dto;
 
-import com.healthcare.ingestion.model.MedicalRecord;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+
 @Getter
 @Setter
 public class MedicalRecordDto {
 
-    private Long id;
 
     @NotNull(message = "Patient ID is required")
     private Long patientId;
@@ -29,11 +28,10 @@ public class MedicalRecordDto {
     private String hospitalName;
     private LocalDateTime visitDate;
     private LocalDateTime followUpDate;
-    private MedicalRecord.RecordStatus status;
+    private String status;
     private String notes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
 
 
 }

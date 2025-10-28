@@ -1,6 +1,5 @@
 package com.healthcare.ingestion.dto;
 
-import com.healthcare.ingestion.model.Patient;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
@@ -17,7 +16,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PatientDto {
-    private Long id;
 
     @NotBlank(message = "First name is required")
     private String firstName;
@@ -28,7 +26,7 @@ public class PatientDto {
     @Past(message = "Date of birth must be in the past")
     private LocalDate dateOfBirth;
 
-    private Patient.Gender gender;
+    private String gender;
 
     @Email(message = "Email should be valid")
     @NotBlank
@@ -45,7 +43,4 @@ public class PatientDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public String getFullName() {
-        return firstName + " " + lastName;
-    }
 }

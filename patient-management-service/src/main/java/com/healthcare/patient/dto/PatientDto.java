@@ -28,16 +28,17 @@ public class PatientDto {
     @Past(message = "Date of birth must be in the past")
     private LocalDate dateOfBirth;
 
+    @NotBlank(message = "Gender is required")
     private Patient.Gender gender;
 
     @Email(message = "Email should be valid")
     private String email;
 
+    @NotBlank(message = "phone number is required")
     private String phoneNumber;
     private String address;
-    private String emergencyContact;
-    private String emergencyPhone;
-    private String insuranceNumber;
+    private String emergencyContactName;
+    private String emergencyContactPhone;
     private String bloodType;
     private String allergies;
     private String medicalHistory;

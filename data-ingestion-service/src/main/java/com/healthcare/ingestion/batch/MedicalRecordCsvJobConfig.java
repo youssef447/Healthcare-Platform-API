@@ -1,10 +1,10 @@
 package com.healthcare.ingestion.batch;
 
 import com.healthcare.ingestion.dto.MedicalRecordDto;
+import com.healthcare.ingestion.dto.PatientDto;
 import com.healthcare.ingestion.mapper.MedicalRecordMapper;
-import com.healthcare.ingestion.model.MedicalRecord;
-import com.healthcare.ingestion.repository.MedicalRecordRepository;
-import com.healthcare.ingestion.repository.PatientRepository;
+import com.healthcare.ingestion.model.OutboxIngestionEvent;
+import com.healthcare.ingestion.repository.OutboxIngestionRepository;
 import com.healthcare.ingestion.service.KafkaProducerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindException;
 
 import java.time.LocalDateTime;
@@ -56,10 +57,10 @@ public class MedicalRecordCsvJobConfig {
 
     @Bean
     public Step medicalRecordCsvStep(FlatFileItemReader<MedicalRecordDto> medicalRecordCsvReader,
-                                     ItemProcessor<MedicalRecordDto, MedicalRecord> medicalRecordProcessor,
-                                     ItemWriter<MedicalRecord> medicalRecordWriter) {
+                                     ItemProcessor<MedicalRecordDto, OutboxIngestionEvent> medicalRecordProcessor,
+                                     ItemWriter<OutboxIngestionEvent> medicalRecordWriter) {
         return new StepBuilder("medicalRecordCsvStep", jobRepository)
-                .<MedicalRecordDto, MedicalRecord>chunk(100, transactionManager)
+                .<MedicalRecordDto, OutboxIngestionEvent>chunk(100, transactionManager)
                 .reader(medicalRecordCsvReader)
                 .processor(medicalRecordProcessor)
                 .writer(medicalRecordWriter)
@@ -126,7 +127,7 @@ public class MedicalRecordCsvJobConfig {
                 String status = fieldSet.readString("status");
                 if (status != null && !status.isBlank()) {
                     try {
-                        dto.setStatus(MedicalRecord.RecordStatus.valueOf(status.trim().toUpperCase()));
+                        dto.setStatus(status.trim().toUpperCase());
                     } catch (Exception e) {
                         log.warn("Invalid record status: {}", status);
                     }
@@ -163,21 +164,29 @@ public class MedicalRecordCsvJobConfig {
     }
 
     @Bean
-    public ItemProcessor<MedicalRecordDto, MedicalRecord> medicalRecordProcessor() {
-        return medicalRecordMapper::toMedicalRecord;
+    public ItemProcessor<MedicalRecordDto, OutboxIngestionEvent> patientProcessor() {
+        return (dto) -> OutboxIngestionEvent.builder()
+                .source("data-ingestion-service")
+                .eventType(OutboxIngestionEvent.EventType.MEDICAL_RECORD_CREATED)
+                .payload(dto)
+                .build();
+
     }
 
     @Bean
-    public ItemWriter<MedicalRecord> medicalRecordWriter(MedicalRecordRepository medicalRecordRepository, KafkaProducerService kafka) {
-        return records -> {
-            List<? extends MedicalRecord> savedRecords = medicalRecordRepository.saveAll(records);
-            for (MedicalRecord record : savedRecords) {
-                kafka.publishMedicalRecordCreated(
-                        record.getPatient().getId(),
-                        record.getId()
-                );
+    @Transactional
+    public ItemWriter<OutboxIngestionEvent> patientWriter(KafkaProducerService kafkaProducer,
+                                                          OutboxIngestionRepository outboxIngestionRepository) {
+        return events -> {
+
+
+            outboxIngestionRepository.saveAll(events);
+            for (OutboxIngestionEvent event : events) {
+                kafkaProducer.publishEvent(event);
+                event.setConsumed(true);
             }
         };
+
     }
 
 }
