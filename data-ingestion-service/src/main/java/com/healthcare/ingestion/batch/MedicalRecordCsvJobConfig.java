@@ -1,9 +1,8 @@
 package com.healthcare.ingestion.batch;
 
 import com.healthcare.ingestion.dto.MedicalRecordDto;
-import com.healthcare.ingestion.dto.PatientDto;
 import com.healthcare.ingestion.mapper.MedicalRecordMapper;
-import com.healthcare.ingestion.model.OutboxIngestionEvent;
+import com.healthcare.ingestion.entity.OutboxIngestionEvent;
 import com.healthcare.ingestion.repository.OutboxIngestionRepository;
 import com.healthcare.ingestion.service.KafkaProducerService;
 import lombok.RequiredArgsConstructor;

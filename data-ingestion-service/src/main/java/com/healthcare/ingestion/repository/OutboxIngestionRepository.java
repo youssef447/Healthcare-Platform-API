@@ -1,8 +1,6 @@
 package com.healthcare.ingestion.repository;
 
-import com.healthcare.ingestion.model.OutboxIngestionEvent;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.healthcare.ingestion.entity.OutboxIngestionEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,7 +16,7 @@ public interface OutboxIngestionRepository extends JpaRepository<OutboxIngestion
     @Query(
             value = """
         SELECT * FROM outbox_ingestion_event
-        WHERE consumed = false
+        WHERE status = 'PENDING'
         ORDER BY created_at ASC
         LIMIT :limit
         FOR UPDATE SKIP LOCKED

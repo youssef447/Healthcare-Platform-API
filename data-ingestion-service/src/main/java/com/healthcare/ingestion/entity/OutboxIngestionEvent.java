@@ -1,4 +1,4 @@
-package com.healthcare.ingestion.model;
+package com.healthcare.ingestion.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 
 @Entity
-@Table(indexes = {
+@Table(name = "outbox_ingestion_event", indexes = {
         @Index(columnList = "consumed", name = "idx_consumed")
 })
 @NoArgsConstructor
@@ -22,9 +22,10 @@ public class OutboxIngestionEvent {
     private Long id;
     @Enumerated(EnumType.STRING)
     private EventType eventType = EventType.PATIENT_CREATED;
+    @Enumerated(EnumType.STRING)
+    private Status status = Status.PENDING;
     private String source;
     private Object payload;
-    private boolean consumed = false;
 
     public enum EventType {
         PATIENT_CREATED,
@@ -37,6 +38,14 @@ public class OutboxIngestionEvent {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+
+    }
+
+
+    public enum Status {
+        PENDING,
+        PROCESSING,
+        COMPLETED
 
     }
 }

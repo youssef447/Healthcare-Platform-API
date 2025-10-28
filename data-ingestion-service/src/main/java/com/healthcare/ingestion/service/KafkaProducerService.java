@@ -1,6 +1,6 @@
 package com.healthcare.ingestion.service;
 
-import com.healthcare.ingestion.model.OutboxIngestionEvent;
+import com.healthcare.ingestion.entity.OutboxIngestionEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;

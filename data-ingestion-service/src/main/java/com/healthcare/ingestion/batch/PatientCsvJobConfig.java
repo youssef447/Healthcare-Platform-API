@@ -1,8 +1,7 @@
 package com.healthcare.ingestion.batch;
 
 import com.healthcare.ingestion.dto.PatientDto;
-import com.healthcare.ingestion.mapper.PatientMapper;
-import com.healthcare.ingestion.model.OutboxIngestionEvent;
+import com.healthcare.ingestion.entity.OutboxIngestionEvent;
 
 import com.healthcare.ingestion.repository.OutboxIngestionRepository;
 import lombok.RequiredArgsConstructor;
