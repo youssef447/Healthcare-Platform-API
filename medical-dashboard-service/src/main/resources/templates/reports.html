@@ -389,12 +389,8 @@
             function refreshReports() {
                 document.getElementById('loadingIndicator').style.display = 'block';
                 document.getElementById('noDataMessage').style.display = 'none';
-                loadReports();
-            }
-
             function filterReports() {
                 const typeFilter = document.getElementById('filterReportType').value;
-                
                 const filtered = reports.filter(report => {
                     return !typeFilter || report.type === typeFilter;
                 });
@@ -404,7 +400,108 @@
 
             // Add event listener for filtering
             document.getElementById('filterReportType').addEventListener('change', filterReports);
-        </script>
-    </div>
-</body>
-</html>
+
+            // Check for pending reports and update their status
+            async function checkPendingReports() {
+                if (!reports.some(r => r.status === 'PENDING' || r.status === 'PROCESSING')) {
+                    if (reportInterval) {
+                        clearInterval(reportInterval);
+                        reportInterval = null;
+                    }
+                    return;
+                }
+                
+                // Only set the interval if not already set
+                if (!reportInterval) {
+                    reportInterval = setInterval(async () => {
+                        try {
+                            const updatedReports = await getReports();
+                            const hasUpdates = JSON.stringify(updatedReports) !== JSON.stringify(reports);
+                            
+                            if (hasUpdates) {
+                                reports = updatedReports;
+                                displayReports(reports);
+                                
+                                // Update statistics if needed
+                                const stats = await getReportStats();
+                                updateStatistics(stats);
+                            }
+                            
+                            // Stop checking if no more pending/processing reports
+                            if (!reports.some(r => r.status === 'PENDING' || r.status === 'PROCESSING')) {
+                                clearInterval(reportInterval);
+                                reportInterval = null;
+                            }
+                        } catch (error) {
+                            console.error('Error checking report status:', error);
+                        }
+                    }, 5000); // Check every 5 seconds
+                }
+            }
+            
+            // Helper functions for UI feedback
+            function showLoading(show) {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const reportsTable = document.getElementById('reportsTable');
+                
+                if (loadingIndicator) loadingIndicator.style.display = show ? 'block' : 'none';
+                if (reportsTable) reportsTable.style.display = show ? 'none' : 'table';
+            }
+            
+            function showNoData(show) {
+                const noDataMessage = document.getElementById('noDataMessage');
+                if (noDataMessage) noDataMessage.style.display = show ? 'block' : 'none';
+            }
+            
+            function showSuccess(message) {
+                console.log('Success:', message);
+                // You can implement a toast notification system here
+                alert('Success: ' + message);
+            }
+            
+            function showError(message) {
+                console.error(message);
+                // You can implement a toast notification system here
+                alert('Error: ' + message);
+            }
+            
+            function showInfo(message) {
+                console.info(message);
+                // You can implement a toast notification system here
+                alert('Info: ' + message);
+            }
+            
+            // Initialize event listeners when the DOM is fully loaded
+            document.addEventListener('DOMContentLoaded', () => {
+                // Add event listeners for filtering
+                const searchInput = document.getElementById('searchReports');
+                const typeFilter = document.getElementById('filterType');
+                const statusFilter = document.getElementById('filterStatus');
+                const dateFrom = document.getElementById('dateFrom');
+                const dateTo = document.getElementById('dateTo');
+                
+                if (searchInput) searchInput.addEventListener('input', filterReports);
+                if (typeFilter) typeFilter.addEventListener('change', filterReports);
+                if (statusFilter) statusFilter.addEventListener('change', filterReports);
+                if (dateFrom) dateFrom.addEventListener('change', filterReports);
+                if (dateTo) dateTo.addEventListener('change', filterReports);
+                
+                // Set default date range (last 30 days)
+                if (dateTo) {
+                    const today = new Date();
+                    dateTo.valueAsDate = today;
+                    
+                    if (dateFrom) {
+                        const thirtyDaysAgo = new Date();
+                        thirtyDaysAgo.setDate(today.getDate() - 30);
+                        dateFrom.valueAsDate = thirtyDaysAgo;
+                    }
+                }
+                
+                // Clean up interval when page is unloaded
+                window.addEventListener('beforeunload', () => {
+                    if (reportInterval) {
+                        clearInterval(reportInterval);
+                    }
+                });
+            });

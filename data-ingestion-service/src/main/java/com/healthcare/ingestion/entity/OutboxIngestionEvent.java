@@ -1,14 +1,15 @@
 package com.healthcare.ingestion.entity;
 
+import com.healthcare.ingestion.converter.JsonAttributeConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
-
 @Entity
 @Table(name = "outbox_ingestion_event", indexes = {
-        @Index(columnList = "consumed", name = "idx_consumed")
+        @Index(columnList = "created_at", name = "idx_created_at"),
+        @Index(columnList = "status", name = "idx_status")
 })
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,6 +26,9 @@ public class OutboxIngestionEvent {
     @Enumerated(EnumType.STRING)
     private Status status = Status.PENDING;
     private String source;
+    
+    @Convert(converter = JsonAttributeConverter.class)
+    @Column(columnDefinition = "TEXT")
     private Object payload;
 
     public enum EventType {

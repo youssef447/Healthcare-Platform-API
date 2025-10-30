@@ -299,10 +299,41 @@
                 }
             }
 
-            // Add event listeners for filtering
-            document.getElementById('searchPatients').addEventListener('input', filterPatients);
-            document.getElementById('filterGender').addEventListener('change', filterPatients);
-            document.getElementById('filterStatus').addEventListener('change', filterPatients);
+            // Helper functions for UI feedback
+            function showLoading(show) {
+                document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+                document.getElementById('treatmentsTable').style.display = show ? 'none' : 'table';
+            }
+            
+            function showNoData(show) {
+                document.getElementById('noDataMessage').style.display = show ? 'block' : 'none';
+            }
+            
+            function showSuccess(message) {
+                // You can implement a toast notification system here
+                alert('Success: ' + message);
+            }
+            
+            function showError(message) {
+                // You can implement a toast notification system here
+                console.error(message);
+                alert('Error: ' + message);
+            }
+            
+            // Initialize event listeners when the DOM is fully loaded
+            document.addEventListener('DOMContentLoaded', () => {
+                // Add event listeners for filtering
+                document.getElementById('searchPatients').addEventListener('input', filterPatients);
+                document.getElementById('filterGender').addEventListener('change', filterPatients);
+                document.getElementById('filterStatus').addEventListener('change', filterPatients);
+                
+                // Reset form when modal is closed
+                document.getElementById('addPatientModal').addEventListener('hidden.bs.modal', function () {
+                    document.getElementById('addPatientForm').reset();
+                    document.querySelector('#addPatientModal .modal-title').textContent = 'Add New Patient';
+                    currentPatientId = null;
+                });
+            });
         </script>
     </div>
 </body>

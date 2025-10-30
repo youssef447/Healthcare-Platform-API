@@ -20,6 +20,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Initialize Dropzone if it exists on the page
+    if (typeof Dropzone !== 'undefined') {
+        initializeDropzone();
+    }
 });
 
 // Handle CSRF token for AJAX requests
@@ -124,49 +129,187 @@ function initializeFileInput(inputId, previewId) {
     });
 }
 
-// Initialize all file inputs on the page
-document.addEventListener('DOMContentLoaded', function() {
-    initializeFileInput('fileInput', 'filePreview');
-    
-    // Handle form submission
-    const uploadForm = document.getElementById('uploadForm');
-    if (uploadForm) {
-        uploadForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const submitButton = this.querySelector('button[type="submit"]');
+// Initialize Dropzone for file uploads
+function initializeDropzone() {
+    const dropzoneElement = document.getElementById('dropzone');
+    if (!dropzoneElement) return;
+
+    // Remove any existing Dropzone instances
+    if (dropzoneElement.dropzone) {
+        dropzoneElement.dropzone.destroy();
+    }
+
+    // Initialize Dropzone
+    const myDropzone = new Dropzone(dropzoneElement, {
+        url: '/api/ingestion/patients/upload', // Default URL, will be updated based on file type
+        paramName: 'file',
+        maxFiles: 1,
+        maxFilesize: 50, // MB
+        acceptedFiles: '.csv',
+        autoProcessQueue: false,
+        uploadMultiple: false,
+        createImageThumbnails: false,
+        clickable: true,
+        dictDefaultMessage: '<i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i><br>Drag & drop your file here or click to browse',
+        
+        init: function() {
+            const dropzone = this;
+            const startButton = document.getElementById('startUpload');
+            const cancelButton = document.getElementById('cancelUpload');
+            const fileTypeRadios = document.querySelectorAll('input[name="fileType"]');
             
-            setButtonLoading(submitButton, true);
-            
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': getCsrfToken()
+            // Update URL based on selected file type
+            function updateUrl() {
+                const selectedType = document.querySelector('input[name="fileType"]:checked');
+                if (selectedType) {
+                    const endpoint = selectedType.value === 'patients' ? 
+                        '/api/ingestion/patients/upload' : 
+                        '/api/ingestion/medical-records/upload';
+                    dropzone.options.url = endpoint;
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                setButtonLoading(submitButton, false);
-                if (data.success) {
-                    showToast('success', 'File uploaded successfully!');
-                    // Reset form
-                    this.reset();
-                    document.getElementById('filePreview').classList.add('d-none');
-                    
-                    // If there's a table to refresh
-                    if (typeof refreshDataTable === 'function') {
-                        refreshDataTable();
-                    }
-                } else {
-                    showToast('danger', data.message || 'An error occurred during upload.');
-                }
-            })
-            .catch(error => {
-                setButtonLoading(submitButton, false);
-                console.error('Error:', error);
-                showToast('danger', 'Failed to upload file. Please try again.');
+            }
+
+            // Listen for file type changes
+            fileTypeRadios.forEach(radio => {
+                radio.addEventListener('change', updateUrl);
             });
-        });
+
+            // Start upload button
+            startButton.addEventListener('click', function() {
+                if (dropzone.files.length === 0) {
+                    showToast('warning', 'Please select a file to upload.');
+                    return;
+                }
+                dropzone.processQueue();
+            });
+
+            // Cancel upload button
+            cancelButton.addEventListener('click', function() {
+                dropzone.removeAllFiles(true);
+                document.getElementById('uploadProgress').classList.add('d-none');
+            });
+
+            // When file is added
+            this.on('addedfile', function(file) {
+                // Enable upload button when file is added
+                startButton.disabled = false;
+                cancelButton.disabled = false;
+                
+                // Update file info in progress card
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                
+                // Show progress card
+                const progressCard = document.getElementById('uploadProgress');
+                progressCard.classList.remove('d-none');
+                
+                // Scroll to progress card
+                setTimeout(() => {
+                    progressCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            });
+            
+            // When file is removed
+            this.on('removedfile', function(file) {
+                // Disable upload button when file is removed
+                startButton.disabled = true;
+                cancelButton.disabled = true;
+                
+                // Hide progress card if no files
+                if (this.files.length === 0) {
+                    document.getElementById('uploadProgress').classList.add('d-none');
+                }
+            });
+            
+            // When sending the file
+            this.on('sending', function(file, xhr, formData) {
+                // Add CSRF token
+                const token = document.querySelector('input[name="_csrf"]').value;
+                xhr.setRequestHeader('X-CSRF-TOKEN', token);
+                
+                // Update status
+                const statusElement = document.getElementById('uploadStatus');
+                statusElement.innerHTML = `
+                    <i class="fas fa-spinner fa-spin me-2"></i>
+                    <span>Uploading file...</span>
+                `;
+                
+                // Clear previous details
+                document.getElementById('uploadDetails').innerHTML = '';
+            });
+            
+            // Update progress
+            this.on('uploadprogress', function(file, progress) {
+                // Update progress bar
+                const progressBar = document.getElementById('progressBar');
+                const percent = Math.round(progress);
+                progressBar.style.width = percent + '%';
+                progressBar.setAttribute('aria-valuenow', percent);
+                
+                // Update badge in header
+                document.querySelector('#uploadProgress .badge').textContent = percent + '%';
+            });
+            
+            // Handle successful upload
+            this.on('success', function(file, response) {
+                // Handle successful upload
+                const statusElement = document.getElementById('uploadStatus');
+                statusElement.innerHTML = `
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <span>${response.message || 'File uploaded successfully!'}</span>
+                `;
+                
+                // Disable upload button after successful upload
+                startButton.disabled = true;
+                
+                // Show success message in details
+                const details = document.getElementById('uploadDetails');
+                details.innerHTML = `
+                    <div class="alert bg-light border border-success border-opacity-25 text-success mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Success!</strong> File has been queued for processing.
+                    </div>
+                `;
+                
+                // Redirect to history after delay
+                setTimeout(() => {
+                    window.location.href = '/ingestion/history';
+                }, 2000);
+            });
+            
+            // Handle upload error
+            this.on('error', function(file, errorMessage) {
+                // Handle upload error
+                const statusElement = document.getElementById('uploadStatus');
+                statusElement.innerHTML = `
+                    <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                    <span>Upload failed: ${errorMessage || 'Unknown error'}</span>
+                `;
+                
+                // Show error message in details
+                const details = document.getElementById('uploadDetails');
+                details.innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error!</strong> ${errorMessage || 'An error occurred during upload.'}
+                    </div>
+                `;
+            });
+        }
+    });
+}
+
+// Initialize file inputs
+function initializeFileInputs() {
+    initializeFileInput('fileInput', 'filePreview');
+}
+
+// Initialize everything when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeFileInputs();
+    
+    // If we're on the history page, initialize the data table
+    if (typeof initializeHistoryTable === 'function') {
+        initializeHistoryTable();
     }
 });

@@ -1,10 +1,8 @@
 package com.healthcare.ingestion.batch;
 
 import com.healthcare.ingestion.dto.MedicalRecordDto;
-import com.healthcare.ingestion.mapper.MedicalRecordMapper;
 import com.healthcare.ingestion.entity.OutboxIngestionEvent;
 import com.healthcare.ingestion.repository.OutboxIngestionRepository;
-import com.healthcare.ingestion.service.KafkaProducerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -44,7 +42,6 @@ public class MedicalRecordCsvJobConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-    private final MedicalRecordMapper medicalRecordMapper;
 
     @Bean
     public Job medicalRecordCsvJob(Step medicalRecordCsvStep) {
@@ -57,12 +54,12 @@ public class MedicalRecordCsvJobConfig {
     @Bean
     public Step medicalRecordCsvStep(FlatFileItemReader<MedicalRecordDto> medicalRecordCsvReader,
                                      ItemProcessor<MedicalRecordDto, OutboxIngestionEvent> medicalRecordProcessor,
-                                     ItemWriter<OutboxIngestionEvent> medicalRecordWriter) {
+                                     ItemWriter<OutboxIngestionEvent> recordWriter) {
         return new StepBuilder("medicalRecordCsvStep", jobRepository)
                 .<MedicalRecordDto, OutboxIngestionEvent>chunk(100, transactionManager)
                 .reader(medicalRecordCsvReader)
                 .processor(medicalRecordProcessor)
-                .writer(medicalRecordWriter)
+                .writer(recordWriter)
                 .faultTolerant()
                 .skip(Exception.class)
                 .skipLimit(1000)
@@ -163,7 +160,7 @@ public class MedicalRecordCsvJobConfig {
     }
 
     @Bean
-    public ItemProcessor<MedicalRecordDto, OutboxIngestionEvent> patientProcessor() {
+    public ItemProcessor<MedicalRecordDto, OutboxIngestionEvent> recordProcessor() {
         return (dto) -> OutboxIngestionEvent.builder()
                 .source("data-ingestion-service")
                 .eventType(OutboxIngestionEvent.EventType.MEDICAL_RECORD_CREATED)
@@ -174,17 +171,9 @@ public class MedicalRecordCsvJobConfig {
 
     @Bean
     @Transactional
-    public ItemWriter<OutboxIngestionEvent> patientWriter(KafkaProducerService kafkaProducer,
-                                                          OutboxIngestionRepository outboxIngestionRepository) {
-        return events -> {
-
-
-            outboxIngestionRepository.saveAll(events);
-            for (OutboxIngestionEvent event : events) {
-                kafkaProducer.publishEvent(event);
-                event.setConsumed(true);
-            }
-        };
+    public ItemWriter<OutboxIngestionEvent> recordWriter(
+            OutboxIngestionRepository outboxIngestionRepository) {
+        return outboxIngestionRepository::saveAll;
 
     }
 

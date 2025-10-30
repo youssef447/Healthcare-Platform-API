@@ -112,7 +112,7 @@ public class PatientCsvJobConfig {
 
     @Bean
     public FieldSetMapper<PatientDto> patientFieldSetMapper() {
-        return new FieldSetMapper<PatientDto>() {
+        return new FieldSetMapper<>() {
             @Override
             public PatientDto mapFieldSet(FieldSet fieldSet) {
                 PatientDto dto = new PatientDto();
