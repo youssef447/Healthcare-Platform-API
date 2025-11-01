@@ -31,7 +31,7 @@ public class DataIngestionController {
     private final BatchIngestionService batchIngestionService;
 
 
-    @PostMapping("/patients/upload")
+    @PostMapping("/patient/upload")
     @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
     @Operation(summary = "Upload patient data file", description = "Upload CSV file containing patient data")
     @ApiResponses(value = {
@@ -64,7 +64,7 @@ public class DataIngestionController {
         }
     }
 
-    @PostMapping("/medical-records/upload")
+    @PostMapping("/medical-record/upload")
     @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
     @Operation(summary = "Upload medical record data file", description = "Upload CSV file containing medical record data")
     @ApiResponses(value = {

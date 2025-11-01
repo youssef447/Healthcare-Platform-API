@@ -372,11 +372,59 @@
                 }
             }
 
-            // Add event listeners for filtering
-            document.getElementById('searchTreatments').addEventListener('input', filterTreatments);
-            document.getElementById('filterStatus').addEventListener('change', filterTreatments);
-            document.getElementById('filterType').addEventListener('change', filterTreatments);
-            document.getElementById('filterPatientId').addEventListener('input', filterTreatments);
+            // Helper functions for UI feedback
+            function showLoading(show) {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const treatmentsTable = document.getElementById('treatmentsTable');
+                
+                if (loadingIndicator) loadingIndicator.style.display = show ? 'block' : 'none';
+                if (treatmentsTable) treatmentsTable.style.display = show ? 'none' : 'table';
+            }
+            
+            function showNoData(show) {
+                const noDataMessage = document.getElementById('noDataMessage');
+                if (noDataMessage) noDataMessage.style.display = show ? 'block' : 'none';
+            }
+            
+            function showSuccess(message) {
+                // You can implement a toast notification system here
+                console.log('Success:', message);
+                alert('Success: ' + message);
+            }
+            
+            function showError(message) {
+                // You can implement a toast notification system here
+                console.error(message);
+                alert('Error: ' + message);
+            }
+            
+            // Initialize event listeners when the DOM is fully loaded
+            document.addEventListener('DOMContentLoaded', () => {
+                // Add event listeners for filtering
+                const searchInput = document.getElementById('searchTreatments');
+                const statusFilter = document.getElementById('filterStatus');
+                const typeFilter = document.getElementById('filterType');
+                const patientIdFilter = document.getElementById('filterPatientId');
+                
+                if (searchInput) searchInput.addEventListener('input', filterTreatments);
+                if (statusFilter) statusFilter.addEventListener('change', filterTreatments);
+                if (typeFilter) typeFilter.addEventListener('change', filterTreatments);
+                if (patientIdFilter) patientIdFilter.addEventListener('input', filterTreatments);
+                
+                // Reset form when modal is closed
+                const treatmentModal = document.getElementById('addTreatmentModal');
+                if (treatmentModal) {
+                    treatmentModal.addEventListener('hidden.bs.modal', function () {
+                        const form = document.getElementById('addTreatmentForm');
+                        if (form) form.reset();
+                        
+                        const modalTitle = document.querySelector('#addTreatmentModal .modal-title');
+                        if (modalTitle) modalTitle.textContent = 'Add New Treatment';
+                        
+                        currentTreatmentId = null;
+                    });
+                }
+            });
         </script>
     </div>
 </body>

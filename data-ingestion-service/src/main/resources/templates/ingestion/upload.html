@@ -1,647 +1,468 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <title>Data Upload - Healthcare Platform</title>
-    <th:block>
-        <link rel="stylesheet" th:href="@{/css/dropzone.min.css}">
-        <style>
-            /* Custom Dropzone Styling */
-            .dropzone {
-                border: 2px dashed #d1d5db;
-                border-radius: 0.75rem;
-                background: #f9fafb;
-                min-height: 200px;
-                padding: 2rem;
-                transition: all 0.3s ease;
-            }
-            
-            .dropzone:hover {
-                border-color: #9ca3af;
-                background: #f3f4f6;
-            }
-            
-            .dz-message {
-                text-align: center;
-                margin: 2em 0;
-                color: #6b7280;
-            }
-            
-            .dz-message i {
-                font-size: 3rem;
-                color: #9ca3af;
-                margin-bottom: 1rem;
-                display: block;
-            }
-            
-            .dz-preview {
-                border-radius: 0.5rem;
-                margin: 0.5rem;
-                background: white;
-                border: 1px solid #e5e7eb;
-            }
-            
-            .dz-upload {
-                background: #3b82f6;
-                height: 4px;
-            }
-            
-            /* Custom radio and checkbox */
-            .form-check-input:checked {
-                background-color: #4361ee;
-                border-color: #4361ee;
-            }
-            
-            .form-check-input:focus {
-                box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
-                border-color: #4361ee;
-            }
-            
-            /* Custom file type cards */
-            .file-type-card {
-                border: 2px solid #e5e7eb;
-                border-radius: 0.75rem;
-                padding: 1.5rem;
-                text-align: center;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                background: white;
-            }
-            
-            .file-type-card:hover {
-                border-color: #4361ee;
-                transform: translateY(-2px);
-            }
-            
-            .file-type-card i {
-                font-size: 2.5rem;
-                color: #4361ee;
-                margin-bottom: 1rem;
-            }
-            
-            .file-type-card.active {
-                border-color: #4361ee;
-                background-color: #f0f4ff;
-            }
-            
-            /* Progress bar */
-            .progress {
-                height: 0.75rem;
-                border-radius: 1rem;
-                background-color: #e5e7eb;
-                overflow: visible;
-            }
-            
-            .progress-bar {
-                border-radius: 1rem;
-                position: relative;
-                overflow: visible;
-                font-size: 0.75rem;
-                font-weight: 600;
-                color: #1e40af;
-            }
-            
-            /* File info cards */
-            .file-info-card {
-                background: #f8fafc;
-                border-left: 3px solid #4361ee;
-                border-radius: 0.5rem;
-                padding: 1rem;
-                margin-bottom: 1rem;
-            }
-            
-            /* Responsive adjustments */
-            @media (max-width: 768px) {
-                .upload-options {
-                    flex-direction: column;
-                    gap: 1rem;
-                }
-            }
-        </style>
-    </th:block>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+    <title>Healthcare Data Upload</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* ... all your existing CSS ... */
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --success: #4bb543;
+            --danger: #ff3333;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+        }
+
+        body {
+            background-color: #f5f7ff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        .upload-container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .upload-header {
+            background: var(--primary);
+            color: white;
+            padding: 1.5rem 2rem;
+        }
+
+        .upload-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .upload-header p {
+            opacity: 0.9;
+            margin: 0.5rem 0 0;
+        }
+
+        .upload-content {
+            padding: 2rem;
+        }
+
+        .upload-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .upload-option {
+            border: 2px dashed var(--light-gray);
+            border-radius: 10px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .upload-option:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1);
+        }
+
+        .upload-option.selected {
+            border-color: var(--primary);
+            background: rgba(67, 97, 238, 0.05);
+        }
+
+        .upload-option i {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .upload-option h3 {
+            color: var(--dark);
+            margin: 0 0 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .upload-option p {
+            color: var(--gray);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .btn-upload {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn-upload:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+        }
+
+        .btn-upload:disabled {
+            background: var(--light-gray);
+            color: var(--gray);
+            cursor: not-allowed;
+        }
+
+        .btn-cancel {
+            background: white;
+            color: var(--gray);
+            border: 2px solid var(--light-gray);
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-cancel:hover:not(:disabled) {
+            border-color: var(--gray);
+            color: var(--dark);
+        }
+
+        .file-preview {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--light);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-preview.show {
+            display: block;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .file-details {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .file-name {
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .file-size {
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        .file-remove {
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: transform 0.2s ease;
+        }
+
+        .file-remove:hover {
+            transform: scale(1.1);
+        }
+
+        .progress {
+            height: 6px;
+            border-radius: 3px;
+            background: var(--light-gray);
+            overflow: hidden;
+            margin-top: 1rem;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: -25px;
+            right: 0;
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        .toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1100;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            max-width: 350px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+    </style>
 </head>
 <body>
-    <div>
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h1 class="page-title">
-                        <i class="fas fa-file-upload text-primary me-2"></i>Data Upload
-                    </h1>
-                    <p class="page-subtitle">Securely upload and process patient and medical record data</p>
-                </div>
-                <a href="/ingestion/history" class="btn btn-outline-primary">
-                    <i class="fas fa-history me-2"></i>View History
-                </a>
+<div class="upload-container">
+    <div class="upload-header">
+        <h1><i class="fas fa-cloud-upload-alt me-2"></i>Healthcare Data Upload</h1>
+        <p>Upload patient or medical record data in CSV format</p>
+    </div>
+
+    <div class="upload-content">
+        <div class="upload-options">
+            <div class="upload-option" id="patientOption" data-type="patient">
+                <i class="fas fa-user-injured"></i>
+                <h3>Patient Data</h3>
+                <p>Upload patient information and demographics</p>
+            </div>
+            <div class="upload-option" id="medicalOption" data-type="medical">
+                <i class="fas fa-file-medical"></i>
+                <h3>Medical Records</h3>
+                <p>Upload medical record data in CSV format</p>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <!-- Upload Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Upload Files</h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- File Type Selection -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold mb-3">Select Data Type</label>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="file-type-card active" data-type="patients">
-                                        <i class="fas fa-user-injured"></i>
-                                        <h6 class="mb-1">Patient Data</h6>
-                                        <p class="text-muted small mb-0">Upload patient demographic information</p>
-                                        <input type="radio" class="d-none" name="dataType" id="patientsRadio" value="patients" checked>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="file-type-card" data-type="records">
-                                        <i class="fas fa-file-medical"></i>
-                                        <h6 class="mb-1">Medical Records</h6>
-                                        <p class="text-muted small mb-0">Upload medical history and records</p>
-                                        <input type="radio" class="d-none" name="dataType" id="recordsRadio" value="records">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Dropzone Area -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold mb-3">Upload Files</label>
-                            <form id="uploadForm" th:action="@{/api/ingestion/patients/upload}" method="post" enctype="multipart/form-data" class="dropzone">
-                                <div class="dz-message" data-dz-message>
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                    <h5 class="mt-3 mb-1">Drag & drop files here</h5>
-                                    <p class="text-muted mb-2">or click to browse files</p>
-                                    <div class="text-muted small">
-                                        Supported formats: .csv, .json (Max 10MB)
-                                    </div>
-                                </div>
-                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                            </form>
-                        </div>
-                        
-                        <!-- Upload Options -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold mb-3">Upload Options</label>
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" role="switch" id="validateOnly">
-                                <label class="form-check-label" for="validateOnly">
-                                    Validate only (don't save to database)
-                                </label>
-                                <i class="fas fa-info-circle text-muted ms-2" 
-                                   data-bs-toggle="tooltip" 
-                                   data-bs-placement="top" 
-                                   title="Check this to validate the file structure without saving to the database">
-                                </i>
-                            </div>
-                        </div>
-                        
-                        <!-- Action Buttons -->
-                        <div class="d-flex justify-content-end gap-2">
-                            <button type="button" id="cancelUpload" class="btn btn-outline-secondary" disabled>
-                                <i class="fas fa-times me-1"></i> Cancel
-                            </button>
-                            <button type="button" id="startUpload" class="btn btn-primary" disabled>
-                                <i class="fas fa-upload me-1"></i> Start Upload
-                            </button>
-                        </div>
+        <div id="filePreview" class="file-preview">
+            <div class="file-info">
+                <div class="file-details">
+                    <div class="file-icon"><i class="fas fa-file-csv"></i></div>
+                    <div>
+                        <div class="file-name" id="fileName"></div>
+                        <div class="file-size" id="fileSize"></div>
                     </div>
                 </div>
-                
-                <!-- Upload Progress -->
-                <div id="uploadProgress" class="card mt-4 d-none">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-spinner fa-spin text-primary me-2"></i>
-                            Upload in Progress
-                        </h5>
-                        <span class="badge bg-primary">0%</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span id="fileName" class="fw-medium">filename.csv</span>
-                                <span id="fileSize" class="text-muted small">0 MB</span>
-                            </div>
-                            <div class="progress">
-                                <div id="progressBar" class="progress-bar" 
-                                     role="progressbar" style="width: 0%" 
-                                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
-                        <div id="uploadStatus" class="small text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            <span>Preparing upload...</span>
-                        </div>
-                        <div id="uploadDetails" class="mt-3"></div>
-                    </div>
-                </div>
-                
-                <!-- Instructions Accordion -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <button class="btn btn-link text-decoration-none text-dark fw-semibold w-100 text-start d-flex justify-content-between align-items-center" 
-                                    type="button" 
-                                    data-bs-toggle="collapse" 
-                                    data-bs-target="#instructionsCollapse" 
-                                    aria-expanded="false" 
-                                    aria-controls="instructionsCollapse">
-                                <span><i class="fas fa-question-circle text-primary me-2"></i>Upload Instructions</span>
-                                <i class="fas fa-chevron-down transition-transform"></i>
-                            </button>
-                        </h5>
-                    </div>
-                    <div id="instructionsCollapse" class="collapse">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6 class="mb-3">CSV Format Example:</h6>
-                                    <div class="bg-light p-3 rounded-2 mb-4">
-                                        <pre class="mb-0"><code>id,firstName,lastName,dateOfBirth,gender,email,phone,address
-1,John,Doe,1980-05-15,MALE,john.doe@example.com,1234567890,123 Main St
-2,Jane,Smith,1975-10-22,FEMALE,jane.smith@example.com,0987654321,456 Oak Ave</code></pre>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6 class="mb-3">JSON Format Example:</h6>
-                                    <div class="bg-light p-3 rounded-2">
-                                        <pre class="mb-0"><code>[
-  {
-    "id": 1,
-    "firstName": "John",
-    "lastName": "Doe",
-    "dateOfBirth": "1980-05-15",
-    "gender": "MALE",
-    "email": "john.doe@example.com",
-    "phone": "1234567890",
-    "address": "123 Main St"
-  }
-]</code></pre>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="alert alert-info mt-4 mb-0">
-                                <div class="d-flex">
-                                    <i class="fas fa-info-circle mt-1 me-2"></i>
-                                    <div>
-                                        <h6 class="alert-heading">Important Notes:</h6>
-                                        <ul class="mb-0">
-                                            <li>Ensure all required fields are included in your file</li>
-                                            <li>Date format should be YYYY-MM-DD</li>
-                                            <li>File size should not exceed 10MB</li>
-                                            <li>For large files, consider compressing to .zip format</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="file-remove" id="removeFile" title="Remove file">
+                    <i class="fas fa-times"></i>
                 </div>
             </div>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+                <span class="progress-text" id="progressText">0%</span>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <button class="btn-cancel" id="cancelBtn" style="display: none;">Cancel</button>
+            <button class="btn-upload" id="uploadBtn" disabled>
+                <i class="fas fa-upload me-2"></i>Upload File
+            </button>
         </div>
     </div>
-    
-    <th:block layout:fragment="scripts">
-        <script th:src="@{/js/dropzone.min.js}"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // Initialize tooltips
-                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl, {
-                        trigger: 'hover'
-                    });
-                });
-                
-                // File type selection
-                const fileTypeCards = document.querySelectorAll('.file-type-card');
-                fileTypeCards.forEach(card => {
-                    card.addEventListener('click', function() {
-                        // Remove active class from all cards
-                        fileTypeCards.forEach(c => c.classList.remove('active'));
-                        // Add active class to clicked card
-                        this.classList.add('active');
-                        // Update the radio input
-                        const radio = this.querySelector('input[type="radio"]');
-                        if (radio) radio.checked = true;
-                        
-                        // Update the form action based on selection
-                        const form = document.getElementById('uploadForm');
-                        const dataType = this.dataset.type;
-                        form.action = `/api/ingestion/${dataType}/upload`;
-                    });
-                });
-                
-                // Initialize Dropzone
-                Dropzone.autoDiscover = false;
-                const myDropzone = new Dropzone("#uploadForm", {
-                    url: "/api/ingestion/patients/upload",
-                    paramName: "file",
-                    maxFilesize: 10, // MB
-                    maxFiles: 1,
-                    acceptedFiles: ".csv,.json",
-                    addRemoveLinks: true,
-                    autoProcessQueue: false,
-                    uploadMultiple: false,
-                    createImageThumbnails: false,
-                    clickable: true,
-                    dictDefaultMessage: "",
-                    previewsContainer: false,
-                    
-                    init: function() {
-                        this.on("addedfile", function(file) {
-                            // Enable upload button when file is added
-                            document.getElementById('startUpload').disabled = false;
-                            document.getElementById('cancelUpload').disabled = false;
-                            
-                            // Update file info in progress card
-                            document.getElementById('fileName').textContent = file.name;
-                            document.getElementById('fileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-                            
-                            // Show progress card
-                            const progressCard = document.getElementById('uploadProgress');
-                            progressCard.classList.remove('d-none');
-                            
-                            // Scroll to progress card
-                            setTimeout(() => {
-                                progressCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                            }, 100);
-                        });
-                        
-                        this.on("removedfile", function(file) {
-                            // Disable upload button when file is removed
-                            document.getElementById('startUpload').disabled = true;
-                            document.getElementById('cancelUpload').disabled = true;
-                            
-                            // Hide progress card if no files
-                            if (this.files.length === 0) {
-                                document.getElementById('uploadProgress').classList.add('d-none');
-                            }
-                        });
-                        
-                        this.on("sending", function(file, xhr, formData) {
-                            // Add CSRF token
-                            const token = document.querySelector('input[name="_csrf"]').value;
-                            xhr.setRequestHeader('X-CSRF-TOKEN', token);
-                            
-                            // Add validateOnly flag if checked
-                            const validateOnly = document.getElementById('validateOnly').checked;
-                            formData.append('validateOnly', validateOnly);
-                            
-                            // Update status
-                            const statusElement = document.getElementById('uploadStatus');
-                            statusElement.innerHTML = `
-                                <i class="fas fa-spinner fa-spin me-2"></i>
-                                <span>Uploading file...</span>
-                            `;
-                            
-                            // Clear previous details
-                            document.getElementById('uploadDetails').innerHTML = '';
-                        });
-                        
-                        this.on("uploadprogress", function(file, progress) {
-                            // Update progress bar
-                            const progressBar = document.getElementById('progressBar');
-                            const percent = Math.round(progress);
-                            progressBar.style.width = percent + '%';
-                            progressBar.setAttribute('aria-valuenow', percent);
-                            
-                            // Update badge in header
-                            document.querySelector('#uploadProgress .badge').textContent = percent + '%';
-                        });
-                        
-                        this.on("success", function(file, response) {
-                            // Handle successful upload
-                            const statusElement = document.getElementById('uploadStatus');
-                            statusElement.innerHTML = `
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <span>${response.message || 'File uploaded successfully!'}</span>
-                            `;
-                            
-                            // Disable upload button after successful upload
-                            document.getElementById('startUpload').disabled = true;
-                            
-                            // Show success message in details
-                            const details = document.getElementById('uploadDetails');
-                            details.innerHTML = `
-                                <div class="alert bg-light border border-success border-opacity-25 text-success mb-0">
-                                    <i class="fas fa-check-circle me-2"></i>
-                                    <strong>Success!</strong> ${response.recordsProcessed || 0} records were processed successfully.
-                                </div>
-                            `;
-                            
-                            // Redirect to history after delay if needed
-                            if (response.redirect) {
-                                setTimeout(() => {
-                                    window.location.href = response.redirect;
-                                }, 2000);
-                            }
-                        });
-                        
-                        this.on("error", function(file, errorMessage) {
-                            // Handle upload error
-                            const statusElement = document.getElementById('uploadStatus');
-                            statusElement.innerHTML = `
-                                <i class="fas fa-exclamation-circle text-danger me-2"></i>
-                                <span>${errorMessage.message || 'Error uploading file'}</span>
-                            `;
-                            
-                            // Show error details
-                            const details = document.getElementById('uploadDetails');
-                            details.innerHTML = `
-                                <div class="alert bg-light border border-danger border-opacity-25 text-danger">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    <strong>Error:</strong> ${errorMessage.details || 'An error occurred during upload. Please try again.'}
-                                </div>
-                            `;
-                        });
-                    }
-                });
-                
-                // Handle start upload button
-                document.getElementById('startUpload').addEventListener('click', function() {
-                    if (myDropzone.files.length === 0) {
-                        const toast = new bootstrap.Toast(document.getElementById('errorToast'));
-                        document.getElementById('toastMessage').textContent = 'Please select a file to upload';
-                        toast.show();
-                        return;
-                    }
-                    
-                    // Reset progress bar
-                    const progressBar = document.getElementById('progressBar');
-                    progressBar.style.width = '0%';
-                    progressBar.setAttribute('aria-valuenow', '0');
-                    
-                    // Process the queue
-                    myDropzone.processQueue();
-                });
-                
-                // Handle cancel upload button
-                document.getElementById('cancelUpload').addEventListener('click', function() {
-                    // Remove all files
-                    myDropzone.removeAllFiles(true);
-                    
-                    // Hide progress card
-                    document.getElementById('uploadProgress').classList.add('d-none');
-                });
+</div>
+
+<div id="toastContainer"></div>
+<input type="file" id="hiddenFileInput" accept=".csv" style="display: none;">
+
+<script>
+    (function () {
+        'useSstrict';
+
+        const state = {currentFile: null, currentType: null, isUploading: false};
+        const elements = {
+            patientOption: document.getElementById('patientOption'),
+            medicalOption: document.getElementById('medicalOption'),
+            fileInput: document.getElementById('hiddenFileInput'),
+            uploadBtn: document.getElementById('uploadBtn'),
+            cancelBtn: document.getElementById('cancelBtn'),
+            filePreview: document.getElementById('filePreview'),
+            fileName: document.getElementById('fileName'),
+            fileSize: document.getElementById('fileSize'),
+            removeFileBtn: document.getElementById('removeFile'),
+            progressBar: document.getElementById('progressBar'),
+            progressText: document.getElementById('progressText'),
+            toastContainer: document.getElementById('toastContainer')
+        };
+
+        function init() {
+            attachEventListeners();
+        }
+
+        function attachEventListeners() {
+            // This is 'medical-record', which matches the controller endpoint
+            elements.patientOption.addEventListener('click', () => handleOptionClick('patient'));
+            elements.medicalOption.addEventListener('click', () => handleOptionClick('medical-record'));
+            elements.fileInput.addEventListener('change', handleFileInputChange);
+            elements.uploadBtn.addEventListener('click', handleUpload);
+            elements.cancelBtn.addEventListener('click', resetUpload);
+            elements.removeFileBtn.addEventListener('click', resetUpload);
+        }
+
+        function handleOptionClick(type) {
+            if (state.isUploading) return;
+            state.currentType = type;
+            elements.fileInput.click();
+        }
+
+        function handleFileInputChange(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!validateFile(file)) {
+                elements.fileInput.value = '';
+                return;
+            }
+            state.currentFile = file;
+            updateUI();
+        }
+
+        function validateFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showToast('Only CSV files are supported', 'error');
+                return false;
+            }
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                showToast('File size exceeds 10MB limit', 'error');
+                return false;
+            }
+            return true;
+        }
+
+        function updateUI() {
+            if (!state.currentFile) {
+                elements.filePreview.classList.remove('show');
+                elements.uploadBtn.disabled = true;
+                return;
+            }
+            elements.filePreview.classList.add('show');
+            elements.fileName.textContent = state.currentFile.name;
+            elements.fileSize.textContent = (state.currentFile.size / 1024).toFixed(2) + ' KB';
+            elements.uploadBtn.disabled = false;
+            elements.cancelBtn.style.display = 'inline-block';
+            elements.patientOption.classList.toggle('selected', state.currentType === 'patient');
+            elements.medicalOption.classList.toggle('selected', state.currentType === 'medical-record');
+        }
+
+        function resetUpload() {
+            if (state.isUploading) return;
+            state.currentFile = null;
+            elements.fileInput.value = '';
+            updateUI();
+        }
+
+        function handleUpload() {
+            if (!state.currentFile || !state.currentType) return;
+            const xhr = new XMLHttpRequest();
+            const formData = new FormData();
+            formData.append('file', state.currentFile);
+
+            // --- FIX 2: Construct the correct endpoint URL ---
+            const endpoint = `api/ingestion/${state.currentType}/upload`; // This will become /upload-patient or /upload-medical-record
+            xhr.open('POST', endpoint, true);
+
+            // --- FIX 1: Read CSRF token from meta tags ---
+            const token = document.querySelector("meta[name='_csrf']").getAttribute("content");
+            const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
+            xhr.withCredentials = true;
+
+            // Set the CSRF token in the request header
+            if (token && header) {
+                xhr.setRequestHeader(header, token);
+            }
+            // (Removed the old getCsrfTokenFromCookie logic)
+
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    elements.progressBar.style.width = percent + '%';
+                    elements.progressText.textContent = percent + '%';
+                }
             });
-            
-            // Add smooth scrolling to anchor links
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                });
-            });
-        </script>
-        
-        <!-- Toast for error messages -->
-        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-            <div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="toast-header bg-danger text-white">
-                    <strong class="me-auto">Error</strong>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="toast-body" id="toastMessage">
-                    An error occurred
-                </div>
-            </div>
-        </div>
-    </th:block>
-</body>
-</html>
-                        
-                        <h6 class="mt-4">JSON Format (Example):</h6>
-                        <pre class="bg-light p-3 rounded">[
-  {
-    "id": 1,
-    "firstName": "John",
-    "lastName": "Doe",
-    "dateOfBirth": "1980-05-15",
-    "gender": "MALE",
-    "email": "john.doe@example.com",
-    "phone": "1234567890",
-    "address": "123 Main St"
-  }
-]</pre>
-                        
-                        <div class="alert alert-info mt-3">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            <strong>Note:</strong> The first row should contain headers. All fields are required.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <th:block layout:fragment="scripts">
-        <script th:src="@{/js/dropzone.min.js}"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // Initialize Dropzone
-                Dropzone.autoDiscover = false;
-                
-                const myDropzone = new Dropzone("#fileDropzone", {
-                    url: "/api/ingestion/patients/upload",
-                    paramName: "file",
-                    maxFilesize: 10, // MB
-                    acceptedFiles: ".csv,.json",
-                    addRemoveLinks: true,
-                    autoProcessQueue: false,
-                    uploadMultiple: false,
-                    headers: {
-                        'X-CSRF-TOKEN': $('input[name="_csrf"]').val()
-                    },
-                    init: function() {
-                        this.on("addedfile", function(file) {
-                            // Update the form action based on the selected data type
-                            const dataType = $('input[name="dataType"]:checked').val();
-                            const url = `/api/ingestion/${dataType}/upload`;
-                            this.options.url = url;
-                            
-                            // Show the progress bar
-                            $('#uploadProgress').removeClass('d-none');
-                        });
-                        
-                        this.on("sending", function(file, xhr, formData) {
-                            // Add additional form data
-                            formData.append("validateOnly", $('#validateOnly').is(':checked'));
-                            
-                            // Update status
-                            $('#uploadStatus').html(`<i class="fas fa-spinner fa-spin me-1"></i> Uploading ${file.name}...`);
-                        });
-                        
-                        this.on("uploadprogress", function(file, progress) {
-                            // Update progress bar
-                            const progressBar = $('#progressBar');
-                            const progressPercent = Math.round(progress);
-                            progressBar.css('width', progressPercent + '%');
-                            progressBar.attr('aria-valuenow', progressPercent);
-                            progressBar.text(progressPercent + '%');
-                        });
-                        
-                        this.on("success", function(file, response) {
-                            // Handle successful upload
-                            $('#uploadStatus').html(`
-                                <div class="alert alert-success">
-                                    <i class="fas fa-check-circle me-2"></i>
-                                    <strong>Upload successful!</strong> ${response.recordsProcessed} records processed.
-                                </div>
-                            `);
-                            
-                            // Add details if available
-                            if (response.errors && response.errors.length > 0) {
-                                let errorHtml = '<div class="alert alert-warning mt-2">';
-                                errorHtml += '<h6><i class="fas fa-exclamation-triangle me-2"></i>Some issues found:</h6><ul class="mb-0">';
-                                response.errors.forEach(error => {
-                                    errorHtml += `<li>${error}</li>`;
-                                });
-                                errorHtml += '</ul></div>';
-                                $('#uploadDetails').html(errorHtml);
-                            }
-                        });
-                        
-                        this.on("error", function(file, errorMessage) {
-                            // Handle errors
-                            $('#uploadStatus').html(`
-                                <div class="alert alert-danger">
-                                    <i class="fas fa-exclamation-circle me-2"></i>
-                                    <strong>Upload failed:</strong> ${errorMessage}
-                                </div>
-                            `);
-                        });
-                    }
-                });
-                
-                // Handle the start upload button
-                $('#startUpload').on('click', function() {
-                    if (myDropzone.getQueuedFiles().length === 0) {
-                        alert('Please select a file to upload.');
-                        return;
-                    }
-                    myDropzone.processQueue();
-                });
-                
-                // Update form action when data type changes
-                $('input[name="dataType"]').change(function() {
-                    const dataType = $(this).val();
-                    const url = `/api/ingestion/${dataType}/upload`;
-                    myDropzone.options.url = url;
-                });
-            });
-        </script>
-    </th:block>
+
+            xhr.onload = () => {
+                state.isUploading = false;
+                if (xhr.status === 200) {
+                    showToast('Upload successful', 'success');
+                    resetUpload();
+                } else {
+                    showToast('Upload failed: ' + xhr.responseText, 'error');
+                }
+            };
+
+            xhr.onerror = () => {
+                state.isUploading = false;
+                showToast('Network error during upload', 'error');
+            };
+            state.isUploading = true;
+            xhr.send(formData);
+        }
+
+        // This function is no longer needed as we read from meta tags
+        // function getCsrfTokenFromCookie() { ... }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            elements.toastContainer.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        init();
+    })();
+</script>
 </body>
 </html>

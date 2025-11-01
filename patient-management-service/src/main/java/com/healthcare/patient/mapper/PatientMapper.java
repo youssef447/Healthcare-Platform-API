@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class PatientMapper {
 
-    public static Patient toEntity(PatientDto dto) {
+    public  Patient toEntity(PatientDto dto) {
         if (dto == null) {
             return null;
         }

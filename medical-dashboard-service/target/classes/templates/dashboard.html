@@ -41,65 +41,120 @@
     </div>
 
     <script th:inline="javascript">
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if user is authenticated
-            fetch('/api/dashboard/health')
-                .then(response => {
-                    if (!response.ok) {
-                        // If not authenticated, redirect to login
-                        window.location.href = '/oauth2/authorization/keycloak';
-                        return;
-                    }
-                    // If authenticated, initialize charts
-                    initializeCharts();
-                })
-                .catch(error => {
-                    console.error('Error checking authentication:', error);
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Check if user is authenticated
+                const healthCheck = await fetch('/api/dashboard/health');
+                if (!healthCheck.ok) {
                     window.location.href = '/oauth2/authorization/keycloak';
-                });
-
-            function initializeCharts() {
-                // Monthly Registrations Chart
-                const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-                if (monthlyCtx) {
-                    new Chart(monthlyCtx, {
-                        type: 'line',
-                        data: {
-                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                            datasets: [{
-                                label: 'Patient Registrations',
-                                data: [15, 22, 18, 25, 30, 28],
-                                borderColor: 'rgb(75, 192, 192)',
-                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                                tension: 0.1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: { y: { beginAtZero: true } }
-                        }
-                    });
+                    return;
                 }
 
-                // Gender Distribution Chart
-                const genderCtx = document.getElementById('genderChart').getContext('2d');
-                if (genderCtx) {
-                    new Chart(genderCtx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Male', 'Female'],
-                            datasets: [{
-                                data: [45, 55],
-                                backgroundColor: ['rgba(54, 162, 235, 0.8)','rgba(255, 99, 132, 0.8)'],
-                                borderColor: ['rgba(54, 162, 235, 1)','rgba(255, 99, 132, 1)'],
-                                borderWidth: 1
-                            }]
+                // Fetch all required data in parallel
+                const [statsRes, monthlyRes, genderRes] = await Promise.all([
+                    fetch('/api/dashboard/stats'),
+                    fetch('/api/dashboard/registrations/monthly'),
+                    fetch('/api/dashboard/patients/gender-distribution')
+                ]);
+
+                if (!statsRes.ok || !monthlyRes.ok || !genderRes.ok) {
+                    throw new Error('Failed to fetch dashboard data');
+                }
+
+                const [stats, monthlyData, genderData] = await Promise.all([
+                    statsRes.json(),
+                    monthlyRes.json(),
+                    genderRes.json()
+                ]);
+
+                // Initialize charts with real data
+                initializeCharts(monthlyData, genderData);
+                updateStats(stats);
+                
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                // Show error message to user
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger';
+                alertDiv.textContent = 'Failed to load dashboard data. Please refresh the page or try again later.';
+                document.querySelector('.container-fluid').prepend(alertDiv);
+            }
+        });
+
+        function updateStats(stats) {
+            // Update any stat boxes or other UI elements with the stats data
+            console.log('Dashboard stats:', stats);
+            // Example: document.getElementById('totalPatients').textContent = stats.totalPatients;
+        }
+
+        function initializeCharts(monthlyData, genderData) {
+            // Monthly Registrations Chart
+            const monthlyCtx = document.getElementById('monthlyChart')?.getContext('2d');
+            if (monthlyCtx) {
+                new Chart(monthlyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: monthlyData.map(item => item.month),
+                        datasets: [{
+                            label: 'Patient Registrations',
+                            data: monthlyData.map(item => item.count),
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { 
+                            y: { 
+                                beginAtZero: true,
+                                title: { display: true, text: 'Number of Patients' }
+                            },
+                            x: {
+                                title: { display: true, text: 'Month' }
+                            }
                         },
-                        options: {
-                            responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Monthly Patient Registrations'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Gender Distribution Chart
+            const genderCtx = document.getElementById('genderChart')?.getContext('2d');
+            if (genderCtx) {
+                new Chart(genderCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: genderData.map(item => item.gender || 'Unknown'),
+                        datasets: [{
+                            data: genderData.map(item => item.count),
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(255, 206, 86, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(255, 206, 86, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
                             maintainAspectRatio: false,
                             plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Patient Gender Distribution'
+                                },
                                 legend: {
                                     position: 'bottom'
                                 }
@@ -110,12 +165,36 @@
             }
 
             // Auto-refresh dashboard every 5 minutes
-            setInterval(() => {
-                fetch('/api/dashboard/health')
-                    .then(response => {
-                        if (response.ok) {
-                            location.reload();
-                        }
+            setInterval(async () => {
+                try {
+                    const healthCheck = await fetch('/api/dashboard/health');
+                    if (!healthCheck.ok) {
+                        window.location.href = '/oauth2/authorization/keycloak';
+                        return;
+                    }
+                    
+                    // Refresh data
+                    const [statsRes, monthlyRes, genderRes] = await Promise.all([
+                        fetch('/api/dashboard/stats'),
+                        fetch('/api/dashboard/registrations/monthly'),
+                        fetch('/api/dashboard/patients/gender-distribution')
+                    ]);
+
+                    if (statsRes.ok && monthlyRes.ok && genderRes.ok) {
+                        const [stats, monthlyData, genderData] = await Promise.all([
+                            statsRes.json(),
+                            monthlyRes.json(),
+                            genderRes.json()
+                        ]);
+                        
+                        // Re-initialize charts with fresh data
+                        initializeCharts(monthlyData, genderData);
+                        updateStats(stats);
+                    }
+                } catch (error) {
+                    console.error('Error refreshing dashboard data:', error);
+                }
+            }, 5 * 60 * 1000); // 5 minutes
                     });
             }, 300000); // 5 minutes
         });

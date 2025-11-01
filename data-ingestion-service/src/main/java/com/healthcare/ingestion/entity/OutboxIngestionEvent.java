@@ -1,6 +1,5 @@
 package com.healthcare.ingestion.entity;
 
-import com.healthcare.ingestion.converter.JsonAttributeConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,14 +21,15 @@ public class OutboxIngestionEvent {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private EventType eventType = EventType.PATIENT_CREATED;
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private Status status = Status.PENDING;
     private String source;
     
-    @Convert(converter = JsonAttributeConverter.class)
     @Column(columnDefinition = "TEXT")
-    private Object payload;
+    private String payload;
 
     public enum EventType {
         PATIENT_CREATED,

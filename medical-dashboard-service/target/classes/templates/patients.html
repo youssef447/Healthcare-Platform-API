@@ -156,101 +156,151 @@
             </div>
         </div>
 
-        <script>
+        <!-- Toast container for notifications -->
+        <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090"></div>
+
+        <script type="module">
+            import { getPatients, createPatient, updatePatient, deletePatient } from '/js/api/patientApi.js';
+
             let patients = [];
+            let currentPatientId = null;
+            
+            // Initialize tooltips
+            function initTooltips() {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
 
             // Load patients on page load
-            document.addEventListener('DOMContentLoaded', function() {
-                loadPatients();
-            });
-
-            async function loadPatients() {
+            document.addEventListener('DOMContentLoaded', async function() {
                 try {
-                    // This would typically call the Patient Management Service API
-                    // For now, we'll use mock data
-                    patients = [
-                        {
-                            id: 1,
-                            firstName: 'John',
-                            lastName: 'Doe',
-                            age: 35,
-                            gender: 'MALE',
-                            phoneNumber: '+1-555-0123',
-                            email: 'john.doe@email.com',
-                            status: 'ACTIVE'
-                        },
-                        {
-                            id: 2,
-                            firstName: 'Jane',
-                            lastName: 'Smith',
-                            age: 28,
-                            gender: 'FEMALE',
-                            phoneNumber: '+1-555-0124',
-                            email: 'jane.smith@email.com',
-                            status: 'ACTIVE'
-                        },
-                        {
-                            id: 3,
-                            firstName: 'Bob',
-                            lastName: 'Johnson',
-                            age: 42,
-                            gender: 'MALE',
-                            phoneNumber: '+1-555-0125',
-                            email: 'bob.johnson@email.com',
-                            status: 'INACTIVE'
-                        }
-                    ];
-                    
+                    showLoading(true);
+                    patients = await getPatients();
                     displayPatients(patients);
-                    document.getElementById('loadingIndicator').style.display = 'none';
+                    setupEventListeners();
                 } catch (error) {
                     console.error('Error loading patients:', error);
-                    document.getElementById('loadingIndicator').style.display = 'none';
-                    document.getElementById('noDataMessage').style.display = 'block';
+                    showError('Failed to load patients. Please try again later.');
+                } finally {
+                    showLoading(false);
                 }
+            });
+
+            function setupEventListeners() {
+                // Search and filter event listeners
+                document.getElementById('searchPatients').addEventListener('input', filterPatients);
+                document.getElementById('filterGender').addEventListener('change', filterPatients);
+                document.getElementById('filterStatus').addEventListener('change', filterPatients);
+                
+                // Form submission
+                document.getElementById('addPatientForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await savePatient();
+                });
             }
 
             function displayPatients(patientsToShow) {
                 const tbody = document.getElementById('patientsTableBody');
+                const noDataMessage = document.getElementById('noDataMessage');
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const patientsTable = document.getElementById('patientsTable');
                 
-                if (patientsToShow.length === 0) {
-                    document.getElementById('noDataMessage').style.display = 'block';
-                    tbody.innerHTML = '';
+                // Show loading indicator while processing
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                
+                if (!patientsToShow || patientsToShow.length === 0) {
+                    if (noDataMessage) noDataMessage.style.display = 'block';
+                    if (patientsTable) patientsTable.style.display = 'none';
+                    if (tbody) tbody.innerHTML = '';
                     return;
                 }
                 
-                document.getElementById('noDataMessage').style.display = 'none';
+                if (noDataMessage) noDataMessage.style.display = 'none';
+                if (patientsTable) patientsTable.style.display = 'table';
                 
-                tbody.innerHTML = patientsToShow.map(patient => `
-                    <tr>
-                        <td>${patient.id}</td>
-                        <td>${patient.firstName} ${patient.lastName}</td>
-                        <td>${patient.age}</td>
-                        <td>
-                            <span class="badge ${patient.gender === 'MALE' ? 'bg-primary' : 'bg-info'}">
-                                ${patient.gender}
-                            </span>
-                        </td>
-                        <td>${patient.phoneNumber}</td>
-                        <td>${patient.email || 'N/A'}</td>
-                        <td>
-                            <span class="badge ${patient.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'}">
-                                ${patient.status}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary me-1" onclick="viewPatient(${patient.id})">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning me-1" onclick="editPatient(${patient.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deletePatient(${patient.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
+                tbody.innerHTML = patientsToShow.map(patient => {
+                    if (!patient) return '';
+                    
+                    const fullName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+                    const email = patient.email || 'N/A';
+                    const phone = patient.phone || (patient.contactInfo && patient.contactInfo.phone) || 'N/A';
+                    const gender = (patient.gender || 'UNKNOWN').toUpperCase();
+                    const status = (patient.status || 'INACTIVE').toUpperCase();
+                    
+                    // Handle date of birth and calculate age
+                    let age = 'N/A';
+                    let dateOfBirth = '';
+                    
+                    if (patient.dateOfBirth) {
+                        try {
+                            const birthDate = new Date(patient.dateOfBirth);
+                            if (!isNaN(birthDate.getTime())) {
+                                const ageDifMs = Date.now() - birthDate.getTime();
+                                const ageDate = new Date(ageDifMs);
+                                age = Math.abs(ageDate.getUTCFullYear() - 1970);
+                                dateOfBirth = birthDate.toISOString().split('T')[0];
+                            }
+                        } catch (e) {
+                            console.error('Error processing date of birth:', e);
+                        }
+                    }
+                    
+                    return `
+                        <tr data-patient-id="${patient.id}">
+                            <td>${patient.id}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar me-2">
+                                        <span class="avatar-initial rounded-circle bg-primary text-white">
+                                            ${patient.firstName ? patient.firstName[0].toUpperCase() : '?'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">${fullName || 'Unnamed Patient'}</h6>
+                                        <small class="text-muted">ID: ${patient.id}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>${age}</td>
+                            <td>
+                                <span class="badge ${gender === 'MALE' ? 'bg-primary' : gender === 'FEMALE' ? 'bg-info' : 'bg-secondary'}">
+                                    ${gender.charAt(0) + gender.slice(1).toLowerCase()}
+                                </span>
+                            </td>
+                            <td>${phone}</td>
+                            <td>${email}</td>
+                            <td>
+                                <span class="badge ${status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'}">
+                                    ${status.charAt(0) + status.slice(1).toLowerCase()}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="viewPatient(${patient.id})" 
+                                        title="View" data-bs-toggle="tooltip">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning me-1" onclick="editPatient(${patient.id})"
+                                        title="Edit" data-bs-toggle="tooltip">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="if(confirm('Are you sure you want to delete this patient?')) deletePatient(${patient.id})"
+                                        title="Delete" data-bs-toggle="tooltip">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                }).join('');
+                
+                // Initialize tooltips
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
             }
 
             function filterPatients() {
@@ -259,13 +309,17 @@
                 const statusFilter = document.getElementById('filterStatus').value;
                 
                 const filtered = patients.filter(patient => {
-                    const matchesSearch = !searchTerm || 
-                        patient.firstName.toLowerCase().includes(searchTerm) ||
-                        patient.lastName.toLowerCase().includes(searchTerm) ||
-                        patient.email?.toLowerCase().includes(searchTerm);
+                    const fullName = `${patient.firstName || ''} ${patient.lastName || ''}`.toLowerCase();
+                    const email = patient.email ? patient.email.toLowerCase() : '';
+                    const phone = patient.phone || patient.phoneNumber || '';
                     
-                    const matchesGender = !genderFilter || patient.gender === genderFilter;
-                    const matchesStatus = !statusFilter || patient.status === statusFilter;
+                    const matchesSearch = !searchTerm || 
+                        fullName.includes(searchTerm) ||
+                        email.includes(searchTerm) ||
+                        phone.includes(searchTerm);
+                    
+                    const matchesGender = !genderFilter || (patient.gender || '').toUpperCase() === genderFilter;
+                    const matchesStatus = !statusFilter || (patient.status || '').toUpperCase() === statusFilter;
                     
                     return matchesSearch && matchesGender && matchesStatus;
                 });
@@ -280,29 +334,299 @@
                 displayPatients(patients);
             }
 
-            function savePatient() {
-                // Implementation for saving patient
-                alert('Patient save functionality would be implemented here');
-            }
+            async function savePatient() {
+                const form = document.getElementById('addPatientForm');
+                if (!form) {
+                    showError('Form not found');
+                    return;
+                }
+                
+                const formData = new FormData(form);
+                const patientData = {
+                    firstName: formData.get('firstName')?.trim(),
+                    lastName: formData.get('lastName')?.trim(),
+                    dateOfBirth: formData.get('dateOfBirth') || null,
+                    gender: formData.get('gender') || null,
+                    phone: formData.get('phoneNumber')?.trim() || null,
+                    email: formData.get('email')?.trim() || null,
+                    address: formData.get('address')?.trim() || null,
+                    contactInfo: {
+                        phone: formData.get('phoneNumber')?.trim() || null,
+                        email: formData.get('email')?.trim() || null,
+                        address: formData.get('address')?.trim() || null
+                    },
+                    emergencyContact: {
+                        name: formData.get('emergencyContactName')?.trim() || null,
+                        phone: formData.get('emergencyContactPhone')?.trim() || null,
+                        relationship: 'Family' // Default value, can be made configurable
+                    },
+                    status: 'ACTIVE',
+                    // Add any additional fields required by your backend
+                    insurance: null,
+                    medicalHistory: null,
+                    allergies: []
+                };
+                
+                // Basic validation
+                if (!patientData.firstName || !patientData.lastName) {
+                    showError('First name and last name are required');
+                    return;
+                }
 
-            function viewPatient(id) {
-                alert(`View patient ${id} functionality would be implemented here`);
-            }
-
-            function editPatient(id) {
-                alert(`Edit patient ${id} functionality would be implemented here`);
-            }
-
-            function deletePatient(id) {
-                if (confirm('Are you sure you want to delete this patient?')) {
-                    alert(`Delete patient ${id} functionality would be implemented here`);
+                try {
+                    showLoading(true);
+                    let savedPatient;
+                    
+                    if (currentPatientId) {
+                        // Update existing patient
+                        savedPatient = await updatePatient(currentPatientId, patientData);
+                        showSuccess('Patient updated successfully');
+                    } else {
+                        // Create new patient
+                        savedPatient = await createPatient(patientData);
+                        showSuccess('Patient created successfully');
+                    }
+                    
+                    // Refresh the patients list
+                    patients = await getPatients();
+                    displayPatients(patients);
+                    
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addPatientModal'));
+                    modal.hide();
+                    
+                } catch (error) {
+                    console.error('Error saving patient:', error);
+                    showError('Failed to save patient: ' + (error.message || 'Unknown error'));
+                } finally {
+                    showLoading(false);
                 }
             }
 
-            // Add event listeners for filtering
-            document.getElementById('searchPatients').addEventListener('input', filterPatients);
-            document.getElementById('filterGender').addEventListener('change', filterPatients);
-            document.getElementById('filterStatus').addEventListener('change', filterPatients);
+            async function viewPatient(id) {
+                try {
+                    // In a real app, you would navigate to a patient detail page
+                    // or show a modal with detailed patient information
+                    window.location.href = `/patients/${id}`;
+                } catch (error) {
+                    console.error('Error viewing patient:', error);
+                    showError('Failed to load patient details');
+                }
+            }
+
+            async function editPatient(id) {
+                try {
+                    const patient = patients.find(p => p.id === id);
+                    if (!patient) {
+                        throw new Error('Patient not found');
+                    }
+                    
+                    // Set the form values
+                    const form = document.getElementById('addPatientForm');
+                    form.querySelector('[name="firstName"]').value = patient.firstName || '';
+                    form.querySelector('[name="lastName"]').value = patient.lastName || '';
+                    form.querySelector('[name="dateOfBirth"]').value = patient.dateOfBirth?.split('T')[0] || '';
+                    form.querySelector('[name="gender"]').value = patient.gender || '';
+                    form.querySelector('[name="phoneNumber"]').value = patient.phone || patient.phoneNumber || '';
+                    form.querySelector('[name="email"]').value = patient.email || '';
+                    form.querySelector('[name="address"]').value = patient.address || '';
+                    form.querySelector('[name="emergencyContactName"]').value = patient.emergencyContact?.name || '';
+                    form.querySelector('[name="emergencyContactPhone"]').value = patient.emergencyContact?.phone || '';
+                    
+                    // Update modal title and set current patient ID
+                    document.querySelector('#addPatientModal .modal-title').textContent = 'Edit Patient';
+                    currentPatientId = id;
+                    
+                    // Show the modal
+                    const modal = new bootstrap.Modal(document.getElementById('addPatientModal'));
+                    modal.show();
+                    
+                } catch (error) {
+                    console.error('Error preparing edit form:', error);
+                    showError('Failed to load patient data for editing');
+                }
+            }
+
+            async function deletePatient(id) {
+                if (!id) {
+                    showError('Invalid patient ID');
+                    return;
+                }
+                
+                if (!confirm('Are you sure you want to delete this patient? This action cannot be undone.')) {
+                    return;
+                }
+                
+                try {
+                    showLoading(true);
+                    await deletePatient(id);
+                    
+                    // Update local state and UI
+                    const initialCount = patients.length;
+                    patients = patients.filter(p => p.id !== id);
+                    
+                    if (patients.length < initialCount) {
+                        showSuccess('Patient deleted successfully');
+                        displayPatients(patients);
+                    } else {
+                        // If patient wasn't in local state, refresh the list
+                        patients = await getPatients();
+                        displayPatients(patients);
+                        showSuccess('Patient deleted successfully');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error deleting patient:', error);
+                    showError('Failed to delete patient: ' + (error.message || 'Unknown error'));
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            // Helper functions for UI feedback
+            function showLoading(show) {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const patientsTable = document.getElementById('patientsTable');
+                
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = show ? 'block' : 'none';
+                }
+                
+                if (patientsTable) {
+                    patientsTable.style.display = show ? 'none' : 'table';
+                }
+            }
+            
+            function showNoData(show) {
+                const noDataMessage = document.getElementById('noDataMessage');
+                if (noDataMessage) {
+                    noDataMessage.style.display = show ? 'block' : 'none';
+                }
+            }
+            
+            function showSuccess(message) {
+                // Create a toast notification
+                const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+                const toastId = 'toast-' + Date.now();
+                
+                const toast = document.createElement('div');
+                toast.id = toastId;
+                toast.className = 'toast show align-items-center text-white bg-success border-0';
+                toast.role = 'alert';
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-check-circle me-2"></i>${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>`;
+                
+                toastContainer.appendChild(toast);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    const toastElement = document.getElementById(toastId);
+                    if (toastElement) {
+                        toastElement.remove();
+                    }
+                }, 5000);
+            }
+            
+            function showError(message) {
+                console.error(message);
+                
+                // Create a toast notification
+                const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+                const toastId = 'error-' + Date.now();
+                
+                const toast = document.createElement('div');
+                toast.id = toastId;
+                toast.className = 'toast show align-items-center text-white bg-danger border-0';
+                toast.role = 'alert';
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-exclamation-circle me-2"></i>${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>`;
+                
+                toastContainer.appendChild(toast);
+                
+                // Auto remove after 7 seconds
+                setTimeout(() => {
+                    const toastElement = document.getElementById(toastId);
+                    if (toastElement) {
+                        toastElement.remove();
+                    }
+                }, 7000);
+            }
+            
+            function createToastContainer() {
+                const container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                container.style.zIndex = '1090';
+                document.body.appendChild(container);
+                return container;
+            }
+            
+            // Initialize event listeners when the DOM is fully loaded
+            document.addEventListener('DOMContentLoaded', () => {
+                // Initialize tooltips
+                initTooltips();
+                
+                // Show loading indicator
+                showLoading(true);
+                
+                // Load initial data
+                (async () => {
+                    try {
+                        patients = await getPatients();
+                        displayPatients(patients);
+                    } catch (error) {
+                        console.error('Error loading patients:', error);
+                        showError('Failed to load patients. Please refresh the page.');
+                    } finally {
+                        showLoading(false);
+                    }
+                })();
+                // Reset form when modal is closed
+                const addPatientModal = document.getElementById('addPatientModal');
+                if (addPatientModal) {
+                    addPatientModal.addEventListener('hidden.bs.modal', function () {
+                        const form = document.getElementById('addPatientForm');
+                        if (form) {
+                            form.reset();
+                            const modalTitle = document.querySelector('#addPatientModal .modal-title');
+                            if (modalTitle) {
+                                modalTitle.textContent = 'Add New Patient';
+                            }
+                            currentPatientId = null;
+                        }
+                    });
+                }
+                
+                // Add form submission handler
+                const addPatientForm = document.getElementById('addPatientForm');
+                if (addPatientForm) {
+                    addPatientForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        savePatient();
+                    });
+                }
+            });
+            
+            // Make functions available globally for inline event handlers
+            window.viewPatient = viewPatient;
+            window.editPatient = editPatient;
+            window.deletePatient = deletePatient;
         </script>
     </div>
 </body>

@@ -1,4 +1,4 @@
-package com.healthcare.ingestion.batch;
+package com.healthcare.ingestion.batch.medical_record;
 
 import com.healthcare.ingestion.dto.MedicalRecordDto;
 import com.healthcare.ingestion.entity.OutboxIngestionEvent;
@@ -21,18 +21,13 @@ import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.separator.DefaultRecordSeparatorPolicy;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
-import org.springframework.batch.item.file.transform.FieldSet;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.BindException;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 @Configuration
 @EnableBatchProcessing
@@ -68,7 +63,8 @@ public class MedicalRecordCsvJobConfig {
 
     @Bean
     @StepScope
-    public FlatFileItemReader<MedicalRecordDto> medicalRecordCsvReader(@Value("#{jobParameters['filePath']}") String filePath) {
+    public FlatFileItemReader<MedicalRecordDto>
+    medicalRecordCsvReader(@Value("#{jobParameters['filePath']}") String filePath) {
         FlatFileItemReader<MedicalRecordDto> reader = new FlatFileItemReader<>();
         reader.setName("medicalRecordCsvReader");
         reader.setResource(new FileSystemResource(filePath));
@@ -106,57 +102,7 @@ public class MedicalRecordCsvJobConfig {
 
     @Bean
     public FieldSetMapper<MedicalRecordDto> medicalRecordFieldSetMapper() {
-        return new FieldSetMapper<>() {
-            @Override
-            public MedicalRecordDto mapFieldSet(FieldSet fieldSet) throws BindException {
-                MedicalRecordDto dto = new MedicalRecordDto();
-                dto.setPatientId(readLong(fieldSet, "patientId"));
-                dto.setRecordType(fieldSet.readString("recordType"));
-                dto.setDescription(fieldSet.readString("description"));
-                dto.setDiagnosis(fieldSet.readString("diagnosis"));
-                dto.setTreatment(fieldSet.readString("treatment"));
-                dto.setMedications(fieldSet.readString("medications"));
-                dto.setDoctorName(fieldSet.readString("doctorName"));
-                dto.setHospitalName(fieldSet.readString("hospitalName"));
-                dto.setVisitDate(parseDateTime(fieldSet.readString("visitDate")));
-                dto.setFollowUpDate(parseDateTime(fieldSet.readString("followUpDate")));
-                String status = fieldSet.readString("status");
-                if (status != null && !status.isBlank()) {
-                    try {
-                        dto.setStatus(status.trim().toUpperCase());
-                    } catch (Exception e) {
-                        log.warn("Invalid record status: {}", status);
-                    }
-                }
-                dto.setNotes(fieldSet.readString("notes"));
-                return dto;
-            }
-
-            private Long readLong(FieldSet fs, String name) {
-                try {
-                    return fs.readLong(name);
-                } catch (Exception e) {
-                    return null;
-                }
-            }
-
-            private LocalDateTime parseDateTime(String value) {
-                if (value == null || value.isBlank()) return null;
-                List<DateTimeFormatter> fmts = List.of(
-                        DateTimeFormatter.ISO_LOCAL_DATE_TIME,
-                        DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm"),
-                        DateTimeFormatter.ofPattern("MM/dd/yyyy")
-                );
-                for (DateTimeFormatter f : fmts) {
-                    try {
-                        return LocalDateTime.parse(value, f);
-                    } catch (Exception ignored) {
-                    }
-                }
-                log.warn("Unable to parse dateTime: {}", value);
-                return null;
-            }
-        };
+        return new MedicalRecordFieldSetMapper();
     }
 
     @Bean
@@ -164,7 +110,7 @@ public class MedicalRecordCsvJobConfig {
         return (dto) -> OutboxIngestionEvent.builder()
                 .source("data-ingestion-service")
                 .eventType(OutboxIngestionEvent.EventType.MEDICAL_RECORD_CREATED)
-                .payload(dto)
+                .payload(dto.toString())
                 .build();
 
     }

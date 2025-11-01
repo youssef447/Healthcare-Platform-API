@@ -1,9 +1,12 @@
-package com.healthcare.ingestion.batch;
+package com.healthcare.ingestion.batch.patient;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.healthcare.ingestion.dto.PatientDto;
 import com.healthcare.ingestion.entity.OutboxIngestionEvent;
 
 import com.healthcare.ingestion.repository.OutboxIngestionRepository;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -22,16 +25,16 @@ import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.separator.DefaultRecordSeparatorPolicy;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
-import org.springframework.batch.item.file.transform.FieldSet;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
+import jakarta.validation.Validator;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 
 @Configuration
 @EnableBatchProcessing
@@ -41,6 +44,8 @@ public class PatientCsvJobConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
+    private final ObjectMapper objectMapper;
+    private final Validator validator;
 
     @Bean
     public Job patientCsvJob(Step patientCsvStep) {
@@ -100,7 +105,9 @@ public class PatientCsvJobConfig {
         // FieldSetMapper will use them which called fieldSet,
         // they are the keys to access ordered columns in each row,
         // the names can be different from the original csv, but the order is important
-        tokenizer.setNames("firstName", "lastName", "dateOfBirth", "gender", "phoneNumber", "email", "address");
+        tokenizer.setNames("firstName", "lastName", "dateOfBirth", "gender", "phoneNumber",
+                "email", "address", "emergencyContactName",
+                "emergencyContactNumber", "bloodType", "allergies", "medicalHistory");
         // if the number of columns is smaller, the missing value will be null instead of Exception,
         // This is useful if the data isn't always complete,
         // but be careful because the FieldSetMapper must handle null values.
@@ -112,58 +119,27 @@ public class PatientCsvJobConfig {
 
     @Bean
     public FieldSetMapper<PatientDto> patientFieldSetMapper() {
-        return new FieldSetMapper<>() {
-            @Override
-            public PatientDto mapFieldSet(FieldSet fieldSet) {
-                PatientDto dto = new PatientDto();
-                dto.setFirstName(fieldSet.readString("firstName"));
-                dto.setLastName(fieldSet.readString("lastName"));
-                String dob = fieldSet.readString("dateOfBirth");
-                dto.setDateOfBirth(parseDate(dob));
-                String gender = fieldSet.readString("gender");
-                if (!gender.isBlank()) {
-                    try {
-                        dto.setGender(gender.trim().toUpperCase());
-                    } catch (Exception e) {
-                        log.warn("Invalid gender value: {}", gender);
-                    }
-                }
-                dto.setPhoneNumber(fieldSet.readString("phoneNumber"));
-                dto.setEmail(fieldSet.readString("email"));
-                dto.setAddress(fieldSet.readString("address"));
-                return dto;
-            }
+        return new PatientFieldSetMapper();
 
-            private LocalDate parseDate(String value) {
-                if (value == null || value.isBlank()) return null;
-
-                List<DateTimeFormatter> formatters = List.of(
-                        DateTimeFormatter.ISO_LOCAL_DATE,
-                        DateTimeFormatter.ofPattern("MM/dd/yyyy"),
-                        DateTimeFormatter.ofPattern("dd-MM-yyyy")
-                );
-
-                for (DateTimeFormatter formatter : formatters) {
-                    try {
-                        return LocalDate.parse(value, formatter);
-                    } catch (Exception ignored) {
-                    }
-                }
-
-                log.warn("Unable to parse date: {}", value);
-                return null;
-            }
-        };
     }
 
 
     @Bean
     public ItemProcessor<PatientDto, OutboxIngestionEvent> patientProcessor() {
-        return (dto) -> OutboxIngestionEvent.builder()
-                .source("data-ingestion-service")
-                .eventType(OutboxIngestionEvent.EventType.PATIENT_CREATED)
-                .payload(dto)
-                .build();
+        return (dto) -> {
+            Set<ConstraintViolation<PatientDto>> violations = validator.validate(dto);
+            if (!violations.isEmpty()) {
+                String errorMessages = violations.stream()
+                        .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                        .collect(Collectors.joining(", "));
+                throw new ValidationException("Validation failed: " + errorMessages);
+            }
+            return OutboxIngestionEvent.builder()
+                    .source("data-ingestion-service")
+
+                    .payload(objectMapper.writeValueAsString(dto))
+                    .build();
+        };
 
     }
 

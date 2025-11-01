@@ -15,13 +15,8 @@ import jakarta.servlet.http.HttpServletRequest;
 @RequestMapping("/ingestion")
 public class IngestionViewController {
 
-    @ModelAttribute
-    public void addCsrfToken(HttpServletRequest request, Model model) {
-        CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
-        if (csrfToken != null) {
-            model.addAttribute("_csrf", csrfToken);
-        }
-    }
+
+
 
     @GetMapping("")
     @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
@@ -30,10 +25,5 @@ public class IngestionViewController {
         return "ingestion/upload";
     }
 
-    @GetMapping("/history")
-    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
-    public String showHistoryPage(@AuthenticationPrincipal OidcUser user, Model model) {
-        model.addAttribute("username", user != null ? user.getAttribute("preferred_username") : "User");
-        return "ingestion/history";
-    }
+
 }

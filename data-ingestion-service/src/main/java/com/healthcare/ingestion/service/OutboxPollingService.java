@@ -18,8 +18,10 @@ public class OutboxPollingService {
     private final KafkaProducerService kafkaProducer;
     private final OutboxTransactionService outboxTransactionService;
 
-    @Scheduled(fixedDelay = 15000)
+    @Scheduled(fixedDelay = 5000)
     public void publishPendingEvents() {
+        long count = outboxRepository.count();
+        log.info("Total events in outbox: {}", count);
         // 1: Lock & mark as PROCESSING
         List<OutboxIngestionEvent> events = outboxTransactionService.lockAndMarkProcessing(100);
         if (events.isEmpty()) {
